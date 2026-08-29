@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import jwt from "jsonwebtoken";
+import { jwtVerify } from "jose";
 
 const COOKIE_NAME = "expense_diary_token";
 
@@ -7,10 +7,12 @@ const PROTECTED_PREFIXES = [
   "/dashboard",
   "/expenses",
   "/diary",
+  "/income",
   "/calendar",
   "/reports",
   "/budgets",
   "/recurring-expenses",
+  "/savings-goals",
   "/categories",
   "/settings",
 ];
@@ -22,7 +24,7 @@ async function isValidToken(token: string | undefined): Promise<boolean> {
   const secret = process.env.AUTH_SECRET;
   if (!secret) return false;
   try {
-    jwt.verify(token, secret);
+    await jwtVerify(token, new TextEncoder().encode(secret));
     return true;
   } catch {
     return false;
@@ -55,10 +57,12 @@ export const config = {
     "/dashboard/:path*",
     "/expenses/:path*",
     "/diary/:path*",
+    "/income/:path*",
     "/calendar/:path*",
     "/reports/:path*",
     "/budgets/:path*",
     "/recurring-expenses/:path*",
+    "/savings-goals/:path*",
     "/categories/:path*",
     "/settings/:path*",
     "/login",

@@ -47,9 +47,7 @@ export function RegisterForm() {
 
   return (
     <div>
-      <h2 className="text-2xl font-semibold text-foreground">
-        Create your account
-      </h2>
+      <h2 className="text-2xl font-semibold text-foreground">Create your account</h2>
       <p className="mt-1 text-sm text-muted-foreground">
         Start tracking your spending in under a minute.
       </p>
@@ -57,12 +55,7 @@ export function RegisterForm() {
       <form onSubmit={handleSubmit(onSubmit)} className="mt-6 space-y-4">
         <div>
           <Label htmlFor="name">Name</Label>
-          <Input
-            id="name"
-            placeholder="Enter Your Name..."
-            {...register("name")}
-            error={!!errors.name}
-          />
+          <Input id="name" placeholder="Jane Doe" {...register("name")} error={!!errors.name} />
           <FormError message={errors.name?.message} />
         </div>
         <div>
@@ -70,7 +63,7 @@ export function RegisterForm() {
           <Input
             id="email"
             type="email"
-            placeholder="Enter Your Email..."
+            placeholder="you@example.com"
             {...register("email")}
             error={!!errors.email}
           />

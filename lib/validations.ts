@@ -1,11 +1,17 @@
 import { z } from "zod";
-import { PAYMENT_METHODS, RECURRING_FREQUENCIES } from "@/types";
+import {
+  PAYMENT_METHODS,
+  RECURRING_FREQUENCIES,
+  INCOME_TYPES,
+  INCOME_CATEGORY_NAMES,
+  RECURRING_INCOME_FREQUENCIES,
+} from "@/types";
 
 export const registerSchema = z
   .object({
     name: z.string().trim().min(2, "Name must be at least 2 characters").max(100),
     email: z.string().trim().email("Please enter a valid email address"),
-    password: z.string().min(5, "Password must be at least 5 characters"),
+    password: z.string().min(8, "Password must be at least 8 characters"),
     confirmPassword: z.string(),
   })
   .refine((data) => data.password === data.confirmPassword, {
@@ -29,7 +35,7 @@ export const forgotPasswordSchema = z.object({
 export const resetPasswordSchema = z
   .object({
     token: z.string().min(1),
-    password: z.string().min(5, "Password must be at least 5 characters"),
+    password: z.string().min(8, "Password must be at least 8 characters"),
     confirmPassword: z.string(),
   })
   .refine((data) => data.password === data.confirmPassword, {
@@ -38,14 +44,15 @@ export const resetPasswordSchema = z
   });
 
 export const expenseSchema = z.object({
-  amount: z.coerce
+  amount: z
     .number({ message: "Please enter a valid expense amount." })
-    .int("Amount must be a whole number")
-    .min(0, "Please enter a valid expense amount."),
+    .positive("Please enter a valid expense amount."),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Please select a valid date."),
-  time: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Please select a valid time.").optional().or(z.literal("")),
+  time: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Please select a valid time."),
   category: z.string().trim().min(1, "Please select a category."),
-  place: z.string().trim().max(150).optional().or(z.literal("")),
+  place: z.string().trim().min(1, "Please enter a place.").max(150),
+  item: z.string().trim().min(1, "Please enter what was purchased.").max(150),
+  description: z.string().trim().max(500).optional().or(z.literal("")),
   paymentMethod: z.enum(PAYMENT_METHODS, {
     message: "Please select a payment method.",
   }),
@@ -54,6 +61,48 @@ export const expenseSchema = z.object({
 });
 
 export type ExpenseInput = z.infer<typeof expenseSchema>;
+
+export const incomeSchema = z.object({
+  amount: z
+    .number({ message: "Please enter a valid income amount." })
+    .positive("Please enter a valid income amount."),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Please select a valid date."),
+  time: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Please select a valid time."),
+  category: z.enum(INCOME_CATEGORY_NAMES as [string, ...string[]], {
+    message: "Please select a category.",
+  }),
+  source: z.string().trim().min(1, "Please enter an income source.").max(150),
+  description: z.string().trim().max(500).optional().or(z.literal("")),
+  incomeType: z.enum(INCOME_TYPES, {
+    message: "Please select an income type.",
+  }),
+  notes: z.string().trim().max(1000).optional().or(z.literal("")),
+  attachment: z.string().optional().or(z.literal("")),
+});
+
+export type IncomeInput = z.infer<typeof incomeSchema>;
+
+export const recurringIncomeSchema = z.object({
+  name: z.string().trim().min(1, "Name is required").max(100),
+  amount: z.coerce.number().positive("Please enter a valid amount."),
+  category: z.enum(INCOME_CATEGORY_NAMES as [string, ...string[]], {
+    message: "Please select a category.",
+  }),
+  source: z.string().trim().min(1, "Please enter a source.").max(150),
+  frequency: z.enum(RECURRING_INCOME_FREQUENCIES, {
+    message: "Please select a frequency.",
+  }),
+  startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Please select a valid start date."),
+  active: z.boolean().optional(),
+});
+
+export const savingsGoalSchema = z.object({
+  name: z.string().trim().min(1, "Goal name is required").max(100),
+  targetAmount: z.coerce.number().positive("Please enter a valid target amount."),
+  targetDate: z.string().optional().or(z.literal("")),
+  currentAmount: z.coerce.number().min(0).optional(),
+  description: z.string().trim().max(500).optional().or(z.literal("")),
+});
 
 export const categorySchema = z.object({
   name: z.string().trim().min(1, "Category name is required").max(50),

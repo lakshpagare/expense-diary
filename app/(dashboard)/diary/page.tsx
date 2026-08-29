@@ -1,31 +1,49 @@
-"use client";
+import { getSession } from "@/lib/auth";
+import { getDiaryEntries } from "@/lib/data";
+import { connectDB } from "@/lib/db";
+import Category from "@/models/Category";
+import { DiaryDayCard } from "@/components/diary/diary-day-card";
+import { EmptyState } from "@/components/ui/empty-state";
+import { BookOpenText } from "lucide-react";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+export default async function DiaryPage() {
+  const session = await getSession();
+  const userId = session!.userId;
 
-export default function DiaryPage() {
+  await connectDB();
+  const [groups, categories] = await Promise.all([
+    getDiaryEntries(userId, 30),
+    Category.find({ userId }).lean(),
+  ]);
+  const serializedCategories = JSON.parse(JSON.stringify(categories));
+
   return (
-    <div className="space-y-6">
+    <div className="mx-auto max-w-2xl space-y-5">
       <div>
-        <h1 className="text-2xl font-semibold text-foreground">
-          Expense Diary
-        </h1>
+        <h1 className="text-2xl font-semibold text-foreground">Expense Diary</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Track your daily spending with detailed entries
+          Your day-by-day spending timeline for the last 30 days.
         </p>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Diary Entries</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-center rounded-lg bg-muted/50 py-20">
-            <p className="text-sm text-muted-foreground">
-              Diary view coming soon
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+      {groups.length === 0 ? (
+        <EmptyState
+          icon={BookOpenText}
+          title="No expenses found."
+          description="Start tracking your spending by adding your first expense."
+          showAddExpense
+        />
+      ) : (
+        <div className="space-y-5">
+          {groups.map((group) => (
+            <DiaryDayCard
+              key={group.date}
+              group={group}
+              categories={serializedCategories}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

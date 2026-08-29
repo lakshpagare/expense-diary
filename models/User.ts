@@ -36,7 +36,7 @@ const UserSchema = new Schema<IUser>(
     password: {
       type: String,
       required: [true, "Password is required"],
-      minlength: 5,
+      minlength: 8,
       select: false, // never return password by default
     },
     profileImage: {

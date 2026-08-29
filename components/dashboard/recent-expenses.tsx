@@ -21,9 +21,7 @@ export function RecentExpenses({
     <Card>
       <CardContent>
         <div className="flex items-center justify-between">
-          <h3 className="text-base font-semibold text-foreground">
-            Recent Expenses
-          </h3>
+          <h3 className="text-base font-semibold text-foreground">Recent Expenses</h3>
           <Link href="/expenses">
             <Button variant="ghost" size="sm">
               View All
@@ -36,9 +34,7 @@ export function RecentExpenses({
             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
               <Receipt className="h-6 w-6 text-muted-foreground" />
             </div>
-            <p className="mt-3 text-sm font-medium text-foreground">
-              No expenses found.
-            </p>
+            <p className="mt-3 text-sm font-medium text-foreground">No expenses found.</p>
             <p className="mt-1 text-sm text-muted-foreground">
               Start tracking your spending by adding your first expense.
             </p>
@@ -57,28 +53,19 @@ export function RecentExpenses({
                     className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
                     style={{ backgroundColor: `${meta?.color ?? "#94a3b8"}20` }}
                   >
-                    <CategoryIcon
-                      icon={meta?.icon ?? "more-horizontal"}
-                      color={meta?.color}
-                      className="h-4.5 w-4.5"
-                    />
+                    <CategoryIcon icon={meta?.icon ?? "more-horizontal"} color={meta?.color} className="h-4.5 w-4.5" />
                   </span>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-foreground">
-                      {e.category}
-                    </p>
+                    <p className="truncate text-sm font-medium text-foreground">{e.item}</p>
                     <p className="truncate text-xs text-muted-foreground">
-                      {e.place ? `${e.place} · ` : ""}
-                      {formatShortDate(e.date)}
+                      {e.place} · {formatShortDate(e.date)}
                     </p>
                   </div>
                   <div className="shrink-0 text-right">
                     <p className="text-sm font-semibold text-foreground">
                       {formatCurrency(e.amount, currency)}
                     </p>
-                    <p className="text-xs text-muted-foreground">
-                      {e.paymentMethod}
-                    </p>
+                    <p className="text-xs text-muted-foreground">{e.paymentMethod}</p>
                   </div>
                 </Link>
               );

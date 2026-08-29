@@ -26,58 +26,42 @@ interface SeriesPoint {
   amount: number;
 }
 
-export function DailySpendingChart({
-  currency = "INR",
-  period: controlledPeriod,
-}: {
-  currency?: string;
-  period?: string;
-}) {
-  const [localPeriod, setLocalPeriod] = useState("30d");
-  const effectivePeriod = controlledPeriod ?? localPeriod;
-  const [data, setData] = useState<{
-    period: string;
-    series: SeriesPoint[];
-  } | null>(null);
-
-  const loading = !data || data.period !== effectivePeriod;
-  const series = data?.period === effectivePeriod ? data.series : [];
+export function DailySpendingChart({ currency = "INR" }: { currency?: string }) {
+  const [period, setPeriod] = useState("30d");
+  const [data, setData] = useState<{ period: string; series: SeriesPoint[] } | null>(null);
+  const loading = !data || data.period !== period;
+  const series = data?.period === period ? data.series : [];
 
   useEffect(() => {
     let cancelled = false;
-    fetch(`/api/reports/daily-trend?period=${effectivePeriod}`)
+    fetch(`/api/reports/daily-trend?period=${period}`)
       .then((res) => res.json())
       .then((json) => {
-        if (!cancelled)
-          setData({ period: effectivePeriod, series: json.series ?? [] });
+        if (!cancelled) setData({ period, series: json.series ?? [] });
       })
       .catch(() => {
-        if (!cancelled) setData({ period: effectivePeriod, series: [] });
+        if (!cancelled) setData({ period, series: [] });
       });
     return () => {
       cancelled = true;
     };
-  }, [effectivePeriod]);
+  }, [period]);
 
   return (
     <Card>
       <CardContent>
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h3 className="text-base font-semibold text-foreground">
-            Daily Spending
-          </h3>
+          <h3 className="text-base font-semibold text-foreground">Daily Spending</h3>
           <div className="flex flex-wrap gap-1 rounded-xl bg-muted p-1">
             {PERIODS.map((p) => (
               <button
                 key={p.value}
-                onClick={() => {
-                  if (controlledPeriod === undefined) setLocalPeriod(p.value);
-                }}
+                onClick={() => setPeriod(p.value)}
                 className={cn(
                   "rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors",
-                  effectivePeriod === p.value
+                  period === p.value
                     ? "bg-card text-brand shadow-sm"
-                    : "text-muted-foreground hover:text-foreground",
+                    : "text-muted-foreground hover:text-foreground"
                 )}
               >
                 {p.label}
@@ -97,21 +81,14 @@ export function DailySpendingChart({
             </div>
           ) : (
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart
-                data={series}
-                margin={{ top: 5, right: 5, left: -20, bottom: 0 }}
-              >
+              <AreaChart data={series} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
                 <defs>
                   <linearGradient id="colorAmount" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#059669" stopOpacity={0.35} />
                     <stop offset="95%" stopColor="#059669" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  vertical={false}
-                  stroke="var(--border)"
-                />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
                 <XAxis
                   dataKey="date"
                   tickFormatter={formatShortDate}
@@ -127,10 +104,7 @@ export function DailySpendingChart({
                   width={50}
                 />
                 <Tooltip
-                  formatter={(value) => [
-                    formatCurrency(Number(value), currency),
-                    "Spent",
-                  ]}
+                  formatter={(value) => [formatCurrency(Number(value), currency), "Spent"]}
                   labelFormatter={(label) => formatShortDate(label as string)}
                   contentStyle={{
                     borderRadius: 12,

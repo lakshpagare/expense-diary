@@ -8,10 +8,10 @@ import { formatCurrency } from "@/lib/utils";
 import type { CategoryBreakdownItem } from "@/lib/data";
 
 export function CategoryBreakdownChart({
-  breakdown = [],
+  breakdown,
   currency = "INR",
 }: {
-  breakdown?: CategoryBreakdownItem[];
+  breakdown: CategoryBreakdownItem[];
   currency?: string;
 }) {
   const router = useRouter();
@@ -23,9 +23,7 @@ export function CategoryBreakdownChart({
   return (
     <Card>
       <CardContent>
-        <h3 className="text-base font-semibold text-foreground">
-          Category Breakdown
-        </h3>
+        <h3 className="text-base font-semibold text-foreground">Category Breakdown</h3>
 
         {breakdown.length === 0 ? (
           <div className="flex h-56 flex-col items-center justify-center text-center">
@@ -55,18 +53,11 @@ export function CategoryBreakdownChart({
                     className="cursor-pointer"
                   >
                     {breakdown.map((entry) => (
-                      <Cell
-                        key={entry.category}
-                        fill={entry.color}
-                        stroke="var(--card)"
-                        strokeWidth={2}
-                      />
+                      <Cell key={entry.category} fill={entry.color} stroke="var(--card)" strokeWidth={2} />
                     ))}
                   </Pie>
                   <Tooltip
-                    formatter={(value) =>
-                      formatCurrency(Number(value), currency)
-                    }
+                    formatter={(value) => formatCurrency(Number(value), currency)}
                     contentStyle={{
                       borderRadius: 12,
                       border: "1px solid var(--border)",
@@ -89,11 +80,7 @@ export function CategoryBreakdownChart({
                     className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full"
                     style={{ backgroundColor: `${item.color}20` }}
                   >
-                    <CategoryIcon
-                      icon={item.icon}
-                      color={item.color}
-                      className="h-3.5 w-3.5"
-                    />
+                    <CategoryIcon icon={item.icon} color={item.color} className="h-3.5 w-3.5" />
                   </span>
                   <span className="min-w-0 flex-1 truncate text-sm text-foreground">
                     {item.category}

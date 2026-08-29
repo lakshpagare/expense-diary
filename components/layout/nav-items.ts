@@ -8,6 +8,7 @@ import {
   Repeat,
   Tags,
   Settings,
+  WalletCards,
   type LucideIcon,
 } from "lucide-react";
 
@@ -20,6 +21,7 @@ export interface NavItem {
 export const NAV_ITEMS: NavItem[] = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { label: "Expense Diary", href: "/diary", icon: BookOpenText },
+  { label: "Income", href: "/income", icon: WalletCards },
   { label: "All Expenses", href: "/expenses", icon: Receipt },
   { label: "Calendar", href: "/calendar", icon: CalendarDays },
   { label: "Reports", href: "/reports", icon: BarChart3 },

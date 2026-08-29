@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "./theme-toggle";
 import { NotificationsDropdown } from "./notifications-dropdown";
 import { useExpenseModal } from "@/components/expenses/expense-modal-context";
+import { useIncomeModal } from "@/components/income/income-modal-context";
 
 export function Header({
   title,
@@ -18,6 +19,7 @@ export function Header({
   const router = useRouter();
   const [search, setSearch] = useState("");
   const { openAddModal } = useExpenseModal();
+  const { openAddModal: openAddIncomeModal } = useIncomeModal();
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,10 +41,7 @@ export function Header({
         {title}
       </h1>
 
-      <form
-        onSubmit={handleSearch}
-        className="ml-auto flex-1 sm:ml-4 sm:max-w-xs"
-      >
+      <form onSubmit={handleSearch} className="ml-auto flex-1 sm:ml-4 sm:max-w-xs">
         <div className="relative">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <input
@@ -54,16 +53,27 @@ export function Header({
         </div>
       </form>
 
-      <div className="flex shrink-0 items-center gap-2">
+      <div className="flex shrink-0 items-center gap-1.5">
         <NotificationsDropdown />
         <ThemeToggle />
         <Button
-          onClick={openAddModal}
+          onClick={openAddIncomeModal}
+          variant="secondary"
           size="sm"
-          className="h-9 px-3 text-xs font-medium sm:inline-flex"
+          className="ml-1 hidden sm:inline-flex"
         >
           <Plus className="h-4 w-4" />
-          <span className="hidden sm:inline">Add Expense</span>
+          Add Income
+        </Button>
+        <Button onClick={openAddModal} size="sm" className="hidden sm:inline-flex">
+          <Plus className="h-4 w-4" />
+          Add Expense
+        </Button>
+        <Button onClick={openAddIncomeModal} variant="secondary" size="icon" className="sm:hidden">
+          <Plus className="h-4 w-4" />
+        </Button>
+        <Button onClick={openAddModal} size="icon" className="sm:hidden">
+          <Plus className="h-4 w-4" />
         </Button>
       </div>
     </header>

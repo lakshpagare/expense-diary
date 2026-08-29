@@ -18,6 +18,13 @@ import {
   Gift,
   Coffee,
   Dumbbell,
+  Laptop,
+  Briefcase,
+  TrendingUp,
+  Percent,
+  BadgePercent,
+  RotateCcw,
+  Clock,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -42,6 +49,13 @@ const ICON_MAP: Record<string, LucideIcon> = {
   gift: Gift,
   coffee: Coffee,
   dumbbell: Dumbbell,
+  laptop: Laptop,
+  briefcase: Briefcase,
+  "trending-up": TrendingUp,
+  percent: Percent,
+  "badge-percent": BadgePercent,
+  "rotate-ccw": RotateCcw,
+  clock: Clock,
 };
 
 export const AVAILABLE_ICONS = Object.keys(ICON_MAP);

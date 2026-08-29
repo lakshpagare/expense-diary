@@ -51,9 +51,11 @@ export interface ExpenseDTO {
   userId: string;
   amount: number;
   date: string; // ISO date (YYYY-MM-DD)
-  time?: string; // HH:mm - optional
+  time: string; // HH:mm
   category: string;
-  place?: string; // optional
+  place: string;
+  item: string;
+  description?: string;
   paymentMethod: PaymentMethod;
   notes?: string;
   receipt?: string;
@@ -102,6 +104,87 @@ export interface RecurringExpenseDTO {
   startDate: string;
   nextDueDate: string;
   active: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/* ------------------------------------------------------------------ */
+/* Income module                                                       */
+/* ------------------------------------------------------------------ */
+
+export type IncomeType = "one-time" | "recurring";
+
+export const INCOME_TYPES = ["one-time", "recurring"] as const;
+
+export interface IncomeCategoryMeta {
+  name: string;
+  icon: string;
+  color: string;
+}
+
+// Fixed list (not user-customizable) per spec, mirroring the shape of
+// DEFAULT_CATEGORIES but kept separate since income categories are not
+// user-manageable the way expense categories are.
+export const INCOME_CATEGORIES: IncomeCategoryMeta[] = [
+  { name: "Salary", icon: "wallet", color: "#059669" },
+  { name: "Freelancing", icon: "laptop", color: "#0ea5e9" },
+  { name: "Business", icon: "briefcase", color: "#6366f1" },
+  { name: "Rental Income", icon: "home", color: "#8b5cf6" },
+  { name: "Investment Returns", icon: "trending-up", color: "#14b8a6" },
+  { name: "Interest", icon: "percent", color: "#22c55e" },
+  { name: "Gift", icon: "gift", color: "#ec4899" },
+  { name: "Cashback", icon: "badge-percent", color: "#f59e0b" },
+  { name: "Refund", icon: "rotate-ccw", color: "#f97316" },
+  { name: "Selling", icon: "shopping-bag", color: "#a855f7" },
+  { name: "Part-time", icon: "clock", color: "#06b6d4" },
+  { name: "Teaching", icon: "graduation-cap", color: "#3b82f6" },
+  { name: "Other", icon: "more-horizontal", color: "#94a3b8" },
+];
+
+export const INCOME_CATEGORY_NAMES = INCOME_CATEGORIES.map((c) => c.name);
+
+export interface IncomeDTO {
+  _id: string;
+  userId: string;
+  amount: number;
+  date: string; // YYYY-MM-DD
+  time: string; // HH:mm
+  category: string;
+  source: string;
+  description?: string;
+  incomeType: IncomeType;
+  notes?: string;
+  attachment?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export const RECURRING_INCOME_FREQUENCIES = ["Weekly", "Monthly", "Yearly"] as const;
+export type RecurringIncomeFrequency = (typeof RECURRING_INCOME_FREQUENCIES)[number];
+
+export interface RecurringIncomeDTO {
+  _id: string;
+  userId: string;
+  name: string;
+  amount: number;
+  category: string;
+  source: string;
+  frequency: RecurringIncomeFrequency;
+  startDate: string;
+  nextIncomeDate: string;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SavingsGoalDTO {
+  _id: string;
+  userId: string;
+  name: string;
+  targetAmount: number;
+  targetDate?: string;
+  currentAmount: number;
+  description?: string;
   createdAt: string;
   updatedAt: string;
 }

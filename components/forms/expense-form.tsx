@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useForm, type Resolver } from "react-hook-form";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { expenseSchema } from "@/lib/validations";
-import type { z } from "zod";
+import { expenseSchema, type ExpenseInput } from "@/lib/validations";
 import { PAYMENT_METHODS } from "@/types";
 import type { ExpenseDTO, CategoryDTO } from "@/types";
 import { todayISO, nowHHMM } from "@/lib/utils";
@@ -25,40 +25,12 @@ interface ExpenseFormProps {
   onCancel: () => void;
 }
 
-type ExpenseFormValues = z.infer<typeof expenseSchema>;
-
-const expenseResolver: Resolver<ExpenseFormValues> = async (values) => {
-  const result = expenseSchema.safeParse(values);
-
-  if (result.success) {
-    return {
-      values: result.data,
-      errors: {},
-    };
-  }
-
-  return {
-    values: {},
-    errors: Object.fromEntries(
-      result.error.issues.map((issue) => [
-        issue.path[0] ?? "root",
-        { type: issue.code, message: issue.message },
-      ]),
-    ),
-  };
-};
-
-export function ExpenseForm({
-  expense,
-  onSuccess,
-  onCancel,
-}: ExpenseFormProps) {
+export function ExpenseForm({ expense, onSuccess, onCancel }: ExpenseFormProps) {
   const isEditing = !!expense;
   const amountRef = useRef<HTMLInputElement | null>(null);
   const [categories, setCategories] = useState<CategoryDTO[]>([]);
   const [serverError, setServerError] = useState<string | null>(null);
   const [loadingCategories, setLoadingCategories] = useState(true);
-  const [showTime, setShowTime] = useState(!!expense?.time);
 
   const lastPaymentMethod =
     typeof window !== "undefined"
@@ -69,34 +41,35 @@ export function ExpenseForm({
     register,
     handleSubmit,
     setValue,
-    getValues,
     watch,
     formState: { errors, isSubmitting },
-  } = useForm<ExpenseFormValues>({
-    resolver: expenseResolver,
+  } = useForm<ExpenseInput>({
+    resolver: zodResolver(expenseSchema),
     defaultValues: expense
       ? {
           amount: expense.amount,
           date: expense.date,
-          time: expense.time ?? "",
+          time: expense.time,
           category: expense.category,
-          place: expense.place ?? "",
+          place: expense.place,
+          item: expense.item,
+          description: expense.description ?? "",
           paymentMethod: expense.paymentMethod,
           notes: expense.notes ?? "",
         }
       : {
-          amount: 0,
+          amount: undefined,
           date: todayISO(),
-          time: "",
+          time: nowHHMM(),
           category: "",
           place: "",
-          paymentMethod:
-            (lastPaymentMethod as ExpenseFormValues["paymentMethod"]) || "UPI",
+          item: "",
+          description: "",
+          paymentMethod: (lastPaymentMethod as ExpenseInput["paymentMethod"]) || "UPI",
           notes: "",
         },
   });
 
-  const amountField = register("amount", { valueAsNumber: true });
   const selectedCategory = watch("category");
 
   useEffect(() => {
@@ -118,7 +91,7 @@ export function ExpenseForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const onSubmit = async (data: ExpenseFormValues) => {
+  const onSubmit = async (data: ExpenseInput) => {
     setServerError(null);
     try {
       const url = isEditing ? `/api/expenses/${expense!._id}` : "/api/expenses";
@@ -137,11 +110,7 @@ export function ExpenseForm({
       }
 
       localStorage.setItem(LAST_PAYMENT_METHOD_KEY, data.paymentMethod);
-      toast.success(
-        isEditing
-          ? "Expense updated successfully."
-          : "Expense added successfully.",
-      );
+      toast.success(isEditing ? "Expense updated successfully." : "Expense added successfully.");
       onSuccess();
     } catch {
       setServerError("Unable to connect to server. Please try again.");
@@ -157,13 +126,13 @@ export function ExpenseForm({
             <Input
               id="amount"
               type="number"
-              step="1"
-              inputMode="numeric"
-              placeholder="0"
-              {...amountField}
-              ref={(element) => {
-                amountField.ref(element);
-                amountRef.current = element;
+              step="0.01"
+              inputMode="decimal"
+              placeholder="0.00"
+              {...register("amount", { valueAsNumber: true })}
+              ref={(el) => {
+                register("amount", { valueAsNumber: true }).ref(el);
+                amountRef.current = el;
               }}
               error={!!errors.amount}
             />
@@ -171,11 +140,7 @@ export function ExpenseForm({
           </div>
           <div>
             <Label htmlFor="paymentMethod">Payment method</Label>
-            <Select
-              id="paymentMethod"
-              {...register("paymentMethod")}
-              error={!!errors.paymentMethod}
-            >
+            <Select id="paymentMethod" {...register("paymentMethod")} error={!!errors.paymentMethod}>
               {PAYMENT_METHODS.map((m) => (
                 <option key={m} value={m}>
                   {m}
@@ -189,40 +154,12 @@ export function ExpenseForm({
         <div className="grid grid-cols-2 gap-3">
           <div>
             <Label htmlFor="date">Date</Label>
-            <Input
-              id="date"
-              type="date"
-              {...register("date")}
-              error={!!errors.date}
-            />
+            <Input id="date" type="date" {...register("date")} error={!!errors.date} />
             <FormError message={errors.date?.message} />
           </div>
           <div>
-            <Label htmlFor="time">
-              <input
-                type="checkbox"
-                checked={showTime}
-                onChange={(e) => {
-                  setShowTime(e.target.checked);
-                  if (e.target.checked && !getValues("time")) {
-                    setValue("time", nowHHMM());
-                  } else if (!e.target.checked) {
-                    setValue("time", "");
-                  }
-                }}
-                className="mr-2"
-              />
-              Add Time (optional)
-            </Label>
-            {showTime && (
-              <Input
-                id="time"
-                type="time"
-                {...register("time")}
-                error={!!errors.time}
-                placeholder="Current time"
-              />
-            )}
+            <Label htmlFor="time">Time</Label>
+            <Input id="time" type="time" {...register("time")} error={!!errors.time} />
             <FormError message={errors.time?.message} />
           </div>
         </div>
@@ -241,24 +178,16 @@ export function ExpenseForm({
                 <button
                   type="button"
                   key={c._id}
-                  onClick={() =>
-                    setValue("category", c.name, { shouldValidate: true })
-                  }
+                  onClick={() => setValue("category", c.name, { shouldValidate: true })}
                   className={cn(
                     "flex flex-col items-center gap-1 rounded-xl border p-2.5 text-center transition-colors",
                     selectedCategory === c.name
                       ? "border-brand bg-brand-light text-brand"
-                      : "border-border text-muted-foreground hover:bg-muted",
+                      : "border-border text-muted-foreground hover:bg-muted"
                   )}
                 >
-                  <CategoryIcon
-                    icon={c.icon}
-                    color={selectedCategory === c.name ? undefined : c.color}
-                    className="h-5 w-5"
-                  />
-                  <span className="w-full truncate text-[11px] font-medium">
-                    {c.name}
-                  </span>
+                  <CategoryIcon icon={c.icon} color={selectedCategory === c.name ? undefined : c.color} className="h-5 w-5" />
+                  <span className="w-full truncate text-[11px] font-medium">{c.name}</span>
                 </button>
               ))}
             </div>
@@ -266,25 +195,32 @@ export function ExpenseForm({
           <FormError message={errors.category?.message} />
         </div>
 
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <Label htmlFor="place">Place</Label>
+            <Input id="place" placeholder="Amazon" {...register("place")} error={!!errors.place} />
+            <FormError message={errors.place?.message} />
+          </div>
+          <div>
+            <Label htmlFor="item">Item</Label>
+            <Input id="item" placeholder="Headphones" {...register("item")} error={!!errors.item} />
+            <FormError message={errors.item?.message} />
+          </div>
+        </div>
+
         <div>
-          <Label htmlFor="place">Place (optional)</Label>
-          <Input
-            id="place"
-            placeholder="e.g., Amazon, Grocery Store"
-            {...register("place")}
-            error={!!errors.place}
+          <Label htmlFor="description">Description</Label>
+          <Textarea
+            id="description"
+            placeholder="Short description..."
+            rows={2}
+            {...register("description")}
           />
-          <FormError message={errors.place?.message} />
         </div>
 
         <div>
           <Label htmlFor="notes">Notes (optional)</Label>
-          <Textarea
-            id="notes"
-            placeholder="Any additional notes..."
-            rows={2}
-            {...register("notes")}
-          />
+          <Textarea id="notes" placeholder="Any additional notes..." rows={2} {...register("notes")} />
         </div>
 
         <FormError message={serverError ?? undefined} />

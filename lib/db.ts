@@ -1,15 +1,11 @@
 import mongoose from "mongoose";
 
-function getMongoUri(): string {
-  const mongoUri = process.env.MONGODB_URI;
+const MONGODB_URI = process.env.MONGODB_URI;
 
-  if (!mongoUri) {
-    throw new Error(
-      "Missing MONGODB_URI environment variable. Add it to your .env.local file or Netlify environment settings."
-    );
-  }
-
-  return mongoUri;
+if (!MONGODB_URI) {
+  throw new Error(
+    "Missing MONGODB_URI environment variable. Add it to your .env.local file."
+  );
 }
 
 /**
@@ -40,14 +36,12 @@ export async function connectDB(): Promise<typeof mongoose> {
     return cached.conn;
   }
 
-  const mongoUri = getMongoUri();
-
   if (!cached.promise) {
     const opts = {
       bufferCommands: false,
     };
 
-    cached.promise = mongoose.connect(mongoUri, opts).then((m) => m);
+    cached.promise = mongoose.connect(MONGODB_URI as string, opts).then((m) => m);
   }
 
   try {

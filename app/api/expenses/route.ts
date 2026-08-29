@@ -49,6 +49,8 @@ export async function GET(req: NextRequest) {
     if (search) {
       query.$or = [
         { place: { $regex: search, $options: "i" } },
+        { item: { $regex: search, $options: "i" } },
+        { description: { $regex: search, $options: "i" } },
         { category: { $regex: search, $options: "i" } },
         { paymentMethod: { $regex: search, $options: "i" } },
       ];

@@ -5,9 +5,11 @@ export interface IExpense extends Document {
   userId: Types.ObjectId;
   amount: number;
   date: string; // stored as YYYY-MM-DD for fast range queries + grouping
-  time?: string; // HH:mm - optional
+  time: string; // HH:mm
   category: string;
-  place?: string; // optional
+  place: string;
+  item: string;
+  description?: string;
   paymentMethod: PaymentMethod;
   notes?: string;
   receipt?: string;
@@ -34,8 +36,8 @@ const ExpenseSchema = new Schema<IExpense>(
     },
     time: {
       type: String,
+      required: [true, "Time is required"],
       match: [/^([01]\d|2[0-3]):([0-5]\d)$/, "Time must be in HH:mm format"],
-      default: "",
     },
     category: {
       type: String,
@@ -44,8 +46,20 @@ const ExpenseSchema = new Schema<IExpense>(
     },
     place: {
       type: String,
+      required: [true, "Place is required"],
       trim: true,
       maxlength: 150,
+    },
+    item: {
+      type: String,
+      required: [true, "Item is required"],
+      trim: true,
+      maxlength: 150,
+    },
+    description: {
+      type: String,
+      trim: true,
+      maxlength: 500,
       default: "",
     },
     paymentMethod: {
@@ -72,7 +86,7 @@ ExpenseSchema.index({ userId: 1, date: -1 });
 ExpenseSchema.index({ userId: 1, category: 1 });
 ExpenseSchema.index({ userId: 1, paymentMethod: 1 });
 ExpenseSchema.index({ userId: 1, place: 1 });
-ExpenseSchema.index({ userId: 1, place: "text" });
+ExpenseSchema.index({ userId: 1, place: "text", item: "text", description: "text" });
 
 const Expense: Model<IExpense> =
   mongoose.models.Expense || mongoose.model<IExpense>("Expense", ExpenseSchema);
