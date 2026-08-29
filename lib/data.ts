@@ -477,3 +477,210 @@ export async function getDayDetails(
   };
 }
 
+/* ------------------------------------------------------------------ */
+/* Reports & Analytics                                                 */
+/* ------------------------------------------------------------------ */
+
+export interface MonthlyTrendPoint {
+  month: string; // YYYY-MM
+  label: string; // "Jan 2026"
+  total: number;
+}
+
+async function monthlyTrend(
+  model: typeof Expense | typeof Income,
+  uid: mongoose.Types.ObjectId,
+  months: number
+): Promise<MonthlyTrendPoint[]> {
+  const now = new Date();
+  const points: MonthlyTrendPoint[] = [];
+
+  for (let i = months - 1; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const year = d.getFullYear();
+    const month = d.getMonth() + 1;
+    const { start, end } = monthRange(year, month);
+    const agg = await model.aggregate([
+      { $match: { userId: uid, date: { $gte: start, $lte: end } } },
+      { $group: { _id: null, total: { $sum: "$amount" } } },
+    ]);
+    points.push({
+      month: `${year}-${String(month).padStart(2, "0")}`,
+      label: d.toLocaleDateString("en-IN", { month: "short", year: "numeric" }),
+      total: agg[0]?.total ?? 0,
+    });
+  }
+
+  return points;
+}
+
+export interface MonthlyComparisonPoint {
+  month: string;
+  label: string;
+  income: number;
+  expenses: number;
+  savings: number;
+}
+
+export async function getMonthlyComparison(
+  userId: string,
+  months = 6
+): Promise<MonthlyComparisonPoint[]> {
+  await connectDB();
+  const uid = new mongoose.Types.ObjectId(userId);
+  const [incomeTrend, expenseTrend] = await Promise.all([
+    monthlyTrend(Income, uid, months),
+    monthlyTrend(Expense, uid, months),
+  ]);
+
+  return incomeTrend.map((inc, i) => ({
+    month: inc.month,
+    label: inc.label,
+    income: inc.total,
+    expenses: expenseTrend[i].total,
+    savings: inc.total - expenseTrend[i].total,
+  }));
+}
+
+export interface PaymentMethodBreakdownItem {
+  method: string;
+  amount: number;
+  percentage: number;
+}
+
+export interface TopPlaceItem {
+  place: string;
+  amount: number;
+}
+
+export interface ExpenseAnalytics {
+  total: number;
+  average: number;
+  highest: number;
+  lowest: number;
+  count: number;
+  paymentMethodBreakdown: PaymentMethodBreakdownItem[];
+  topPlaces: TopPlaceItem[];
+  monthlyTrend: MonthlyTrendPoint[];
+}
+
+export async function getExpenseAnalytics(userId: string, months = 6): Promise<ExpenseAnalytics> {
+  await connectDB();
+  const uid = new mongoose.Types.ObjectId(userId);
+  const now = new Date();
+  const { start, end } = monthRange(now.getFullYear(), now.getMonth() + 1);
+
+  const [statsAgg, paymentAgg, placeAgg, trend] = await Promise.all([
+    Expense.aggregate([
+      { $match: { userId: uid, date: { $gte: start, $lte: end } } },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: "$amount" },
+          avg: { $avg: "$amount" },
+          max: { $max: "$amount" },
+          min: { $min: "$amount" },
+          count: { $sum: 1 },
+        },
+      },
+    ]),
+    Expense.aggregate([
+      { $match: { userId: uid, date: { $gte: start, $lte: end } } },
+      { $group: { _id: "$paymentMethod", total: { $sum: "$amount" } } },
+      { $sort: { total: -1 } },
+    ]),
+    Expense.aggregate([
+      { $match: { userId: uid, date: { $gte: start, $lte: end } } },
+      { $group: { _id: "$place", total: { $sum: "$amount" } } },
+      { $sort: { total: -1 } },
+      { $limit: 5 },
+    ]),
+    monthlyTrend(Expense, uid, months),
+  ]);
+
+  const stats = statsAgg[0] ?? { total: 0, avg: 0, max: 0, min: 0, count: 0 };
+  const grandTotal = paymentAgg.reduce((s, r) => s + r.total, 0);
+
+  return {
+    total: stats.total,
+    average: Math.round(stats.avg ?? 0),
+    highest: stats.max ?? 0,
+    lowest: stats.count > 0 ? stats.min ?? 0 : 0,
+    count: stats.count,
+    paymentMethodBreakdown: paymentAgg.map((r) => ({
+      method: r._id as string,
+      amount: r.total as number,
+      percentage: grandTotal > 0 ? Math.round((r.total / grandTotal) * 1000) / 10 : 0,
+    })),
+    topPlaces: placeAgg.map((r) => ({ place: r._id as string, amount: r.total as number })),
+    monthlyTrend: trend,
+  };
+}
+
+export interface IncomeAnalytics {
+  total: number;
+  average: number;
+  highest: number;
+  lowest: number;
+  count: number;
+  growthPercent: number | null;
+  recurringTotal: number;
+  oneTimeTotal: number;
+  monthlyTrend: MonthlyTrendPoint[];
+}
+
+export async function getIncomeAnalytics(userId: string, months = 6): Promise<IncomeAnalytics> {
+  await connectDB();
+  const uid = new mongoose.Types.ObjectId(userId);
+  const now = new Date();
+  const { start, end } = monthRange(now.getFullYear(), now.getMonth() + 1);
+  const prevDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const { start: prevStart, end: prevEnd } = monthRange(
+    prevDate.getFullYear(),
+    prevDate.getMonth() + 1
+  );
+
+  const [statsAgg, typeAgg, prevAgg, trend] = await Promise.all([
+    Income.aggregate([
+      { $match: { userId: uid, date: { $gte: start, $lte: end } } },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: "$amount" },
+          avg: { $avg: "$amount" },
+          max: { $max: "$amount" },
+          min: { $min: "$amount" },
+          count: { $sum: 1 },
+        },
+      },
+    ]),
+    Income.aggregate([
+      { $match: { userId: uid, date: { $gte: start, $lte: end } } },
+      { $group: { _id: "$incomeType", total: { $sum: "$amount" } } },
+    ]),
+    Income.aggregate([
+      { $match: { userId: uid, date: { $gte: prevStart, $lte: prevEnd } } },
+      { $group: { _id: null, total: { $sum: "$amount" } } },
+    ]),
+    monthlyTrend(Income, uid, months),
+  ]);
+
+  const stats = statsAgg[0] ?? { total: 0, avg: 0, max: 0, min: 0, count: 0 };
+  const prevTotal = prevAgg[0]?.total ?? 0;
+  const recurringTotal = typeAgg.find((r) => r._id === "recurring")?.total ?? 0;
+  const oneTimeTotal = typeAgg.find((r) => r._id === "one-time")?.total ?? 0;
+
+  return {
+    total: stats.total,
+    average: Math.round(stats.avg ?? 0),
+    highest: stats.max ?? 0,
+    lowest: stats.count > 0 ? stats.min ?? 0 : 0,
+    count: stats.count,
+    growthPercent:
+      prevTotal > 0 ? Math.round(((stats.total - prevTotal) / prevTotal) * 100) : null,
+    recurringTotal,
+    oneTimeTotal,
+    monthlyTrend: trend,
+  };
+}
+
