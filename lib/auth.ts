@@ -60,3 +60,45 @@ export async function clearSessionCookie() {
 }
 
 export const AUTH_COOKIE_NAME = COOKIE_NAME;
+
+/* ------------------------------------------------------------------ */
+/* Pending session (between password check and OTP verification)      */
+/* ------------------------------------------------------------------ */
+
+const PENDING_COOKIE_NAME = "expense_diary_pending";
+const PENDING_MAX_AGE_SECONDS = 60 * 15; // 15 minutes - generous but bounded
+
+export interface PendingPayload {
+  userId: string;
+  purpose: "email_verification" | "login";
+}
+
+export async function setPendingCookie(payload: PendingPayload) {
+  const token = jwt.sign(payload, AUTH_SECRET as string, {
+    expiresIn: PENDING_MAX_AGE_SECONDS,
+  });
+  const cookieStore = await cookies();
+  cookieStore.set(PENDING_COOKIE_NAME, token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+    maxAge: PENDING_MAX_AGE_SECONDS,
+  });
+}
+
+export async function getPendingSession(): Promise<PendingPayload | null> {
+  const cookieStore = await cookies();
+  const token = cookieStore.get(PENDING_COOKIE_NAME)?.value;
+  if (!token) return null;
+  try {
+    return jwt.verify(token, AUTH_SECRET as string) as PendingPayload;
+  } catch {
+    return null;
+  }
+}
+
+export async function clearPendingCookie() {
+  const cookieStore = await cookies();
+  cookieStore.delete(PENDING_COOKIE_NAME);
+}

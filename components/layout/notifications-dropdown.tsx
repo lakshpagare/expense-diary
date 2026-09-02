@@ -1,12 +1,18 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Bell, AlertTriangle, TrendingUp, Repeat, Wallet } from "lucide-react";
+import { Bell, AlertTriangle, TrendingUp, Repeat, Wallet, PieChart } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Notification {
   id: string;
-  type: "budget_warning" | "budget_exceeded" | "recurring_due" | "large_expense";
+  type:
+    | "budget_warning"
+    | "budget_exceeded"
+    | "recurring_due"
+    | "large_expense"
+    | "category_limit_warning"
+    | "category_limit_exceeded";
   title: string;
   message: string;
   date: string;
@@ -17,6 +23,8 @@ const ICONS: Record<Notification["type"], typeof Bell> = {
   budget_exceeded: Wallet,
   recurring_due: Repeat,
   large_expense: TrendingUp,
+  category_limit_warning: PieChart,
+  category_limit_exceeded: PieChart,
 };
 
 export function NotificationsDropdown() {
@@ -75,7 +83,11 @@ export function NotificationsDropdown() {
             <div className="divide-y divide-border">
               {notifications.map((n) => {
                 const Icon = ICONS[n.type];
-                const isWarning = n.type === "budget_exceeded" || n.type === "budget_warning";
+                const isWarning =
+                  n.type === "budget_exceeded" ||
+                  n.type === "budget_warning" ||
+                  n.type === "category_limit_exceeded" ||
+                  n.type === "category_limit_warning";
                 return (
                   <div key={n.id} className="flex gap-3 px-4 py-3">
                     <div

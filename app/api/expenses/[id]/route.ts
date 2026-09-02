@@ -4,6 +4,7 @@ import { connectDB } from "@/lib/db";
 import Expense from "@/models/Expense";
 import { getSession } from "@/lib/auth";
 import { expenseSchema } from "@/lib/validations";
+import { getCategoryLimitStatus } from "@/lib/category-limit";
 
 function isValidId(id: string) {
   return mongoose.Types.ObjectId.isValid(id);
@@ -74,7 +75,13 @@ export async function PUT(
       return NextResponse.json({ error: "Expense not found." }, { status: 404 });
     }
 
-    return NextResponse.json({ expense });
+    const categoryLimitStatus = await getCategoryLimitStatus(
+      session.userId,
+      parsed.data.category,
+      parsed.data.date
+    );
+
+    return NextResponse.json({ expense, categoryLimitStatus });
   } catch (err) {
     console.error("Update expense error:", err);
     return NextResponse.json(

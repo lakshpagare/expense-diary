@@ -111,6 +111,15 @@ export function ExpenseForm({ expense, onSuccess, onCancel }: ExpenseFormProps) 
 
       localStorage.setItem(LAST_PAYMENT_METHOD_KEY, data.paymentMethod);
       toast.success(isEditing ? "Expense updated successfully." : "Expense added successfully.");
+
+      if (json.categoryLimitStatus) {
+        const { category, percentage } = json.categoryLimitStatus;
+        toast.warning(
+          `${category} limit ${percentage > 100 ? "exceeded" : "reached"} — you've used ${percentage}% of its monthly limit.`,
+          { duration: 6000 }
+        );
+      }
+
       onSuccess();
     } catch {
       setServerError("Unable to connect to server. Please try again.");

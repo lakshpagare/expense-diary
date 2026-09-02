@@ -81,6 +81,9 @@ export interface CategoryDTO {
   name: string;
   icon: string;
   color?: string;
+  monthlyLimit?: number;
+  isDefault?: boolean;
+  monthlySpend?: number;
   createdAt: string;
 }
 

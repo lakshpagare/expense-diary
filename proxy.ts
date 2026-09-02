@@ -15,9 +15,17 @@ const PROTECTED_PREFIXES = [
   "/savings-goals",
   "/categories",
   "/settings",
+  "/subscribe",
 ];
 
-const AUTH_PAGES = ["/login", "/register", "/forgot-password", "/reset-password"];
+const AUTH_PAGES = [
+  "/login",
+  "/register",
+  "/forgot-password",
+  "/reset-password",
+  "/verify-email",
+  "/verify-login",
+];
 
 async function isValidToken(token: string | undefined): Promise<boolean> {
   if (!token) return false;
@@ -65,9 +73,12 @@ export const config = {
     "/savings-goals/:path*",
     "/categories/:path*",
     "/settings/:path*",
+    "/subscribe",
     "/login",
     "/register",
     "/forgot-password",
     "/reset-password",
+    "/verify-email",
+    "/verify-login",
   ],
 };

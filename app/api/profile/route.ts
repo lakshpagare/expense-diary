@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/db";
 import User from "@/models/User";
-import { getSession } from "@/lib/auth";
+import { getSession, setSessionCookie } from "@/lib/auth";
 import { profileSchema } from "@/lib/validations";
 
 export async function GET() {
@@ -12,9 +12,9 @@ export async function GET() {
 
   try {
     await connectDB();
-    const user = await User.findById(session.userId).select("-password -resetPasswordToken -resetPasswordExpires");
+    const user = await User.findById(session.userId).lean();
     if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
+      return NextResponse.json({ error: "User not found." }, { status: 404 });
     }
 
     return NextResponse.json({
@@ -22,7 +22,7 @@ export async function GET() {
         id: user._id.toString(),
         name: user.name,
         email: user.email,
-        profileImage: user.profileImage || "",
+        profileImage: user.profileImage,
         currency: user.currency,
         monthlyBudget: user.monthlyBudget,
         defaultPaymentMethod: user.defaultPaymentMethod,
@@ -30,10 +30,7 @@ export async function GET() {
     });
   } catch (err) {
     console.error("Get profile error:", err);
-    return NextResponse.json(
-      { error: "Unable to load profile." },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Unable to load profile." }, { status: 500 });
   }
 }
 
@@ -46,7 +43,6 @@ export async function PUT(req: NextRequest) {
   try {
     const body = await req.json();
     const parsed = profileSchema.safeParse(body);
-
     if (!parsed.success) {
       return NextResponse.json(
         { error: parsed.error.issues[0]?.message ?? "Invalid input" },
@@ -57,20 +53,28 @@ export async function PUT(req: NextRequest) {
     await connectDB();
     const user = await User.findByIdAndUpdate(
       session.userId,
-      parsed.data,
+      { $set: parsed.data },
       { new: true, runValidators: true }
-    ).select("-password -resetPasswordToken -resetPasswordExpires");
+    );
 
     if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
+      return NextResponse.json({ error: "User not found." }, { status: 404 });
     }
+
+    // Refresh the session cookie so the sidebar/header immediately reflect
+    // a changed name without requiring the user to log in again.
+    await setSessionCookie({
+      userId: user._id.toString(),
+      email: user.email,
+      name: user.name,
+    });
 
     return NextResponse.json({
       user: {
         id: user._id.toString(),
         name: user.name,
         email: user.email,
-        profileImage: user.profileImage || "",
+        profileImage: user.profileImage,
         currency: user.currency,
         monthlyBudget: user.monthlyBudget,
         defaultPaymentMethod: user.defaultPaymentMethod,

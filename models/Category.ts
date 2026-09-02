@@ -5,6 +5,8 @@ export interface ICategory extends Document {
   name: string;
   icon: string;
   color: string;
+  monthlyLimit?: number;
+  isDefault: boolean;
   createdAt: Date;
 }
 
@@ -28,6 +30,14 @@ const CategorySchema = new Schema<ICategory>(
     color: {
       type: String,
       default: "#64748b",
+    },
+    monthlyLimit: {
+      type: Number,
+      min: 0,
+    },
+    isDefault: {
+      type: Boolean,
+      default: false,
     },
   },
   { timestamps: { createdAt: true, updatedAt: false } }

@@ -11,6 +11,10 @@ export const registerSchema = z
   .object({
     name: z.string().trim().min(2, "Name must be at least 2 characters").max(100),
     email: z.string().trim().email("Please enter a valid email address"),
+    phone: z
+      .string()
+      .trim()
+      .regex(/^[6-9]\d{9}$/, "Please enter a valid 10-digit mobile number"),
     password: z.string().min(8, "Password must be at least 8 characters"),
     confirmPassword: z.string(),
   })
@@ -22,11 +26,20 @@ export const registerSchema = z
 export type RegisterInput = z.infer<typeof registerSchema>;
 
 export const loginSchema = z.object({
-  email: z.string().trim().email("Please enter a valid email address"),
+  identifier: z.string().trim().min(1, "Please enter your email or phone number"),
   password: z.string().min(1, "Password is required"),
 });
 
 export type LoginInput = z.infer<typeof loginSchema>;
+
+export const otpSchema = z.object({
+  otp: z
+    .string()
+    .trim()
+    .regex(/^\d{6}$/, "Please enter the 6-digit code"),
+});
+
+export type OtpInput = z.infer<typeof otpSchema>;
 
 export const forgotPasswordSchema = z.object({
   email: z.string().trim().email("Please enter a valid email address"),
@@ -108,6 +121,18 @@ export const categorySchema = z.object({
   name: z.string().trim().min(1, "Category name is required").max(50),
   icon: z.string().trim().min(1, "Please choose an icon"),
   color: z.string().trim().optional(),
+  monthlyLimit: z
+    .number()
+    .min(0, "Please enter a valid limit amount.")
+    .optional()
+    .nullable(),
+});
+
+// Editing an existing category only ever needs a subset of these fields
+// (default categories can only change monthlyLimit) - the API decides
+// which fields are actually applied based on whether it's a default category.
+export const categoryLimitSchema = z.object({
+  monthlyLimit: z.number().min(0, "Please enter a valid limit amount.").optional().nullable(),
 });
 
 export const budgetSchema = z.object({
@@ -130,7 +155,7 @@ export const recurringExpenseSchema = z.object({
 export const profileSchema = z.object({
   name: z.string().trim().min(2, "Name must be at least 2 characters").max(100),
   currency: z.string().trim().min(1).max(10),
-  monthlyBudget: z.coerce.number().min(0),
+  monthlyBudget: z.number().min(0, "Please enter a valid budget amount."),
   defaultPaymentMethod: z.enum(PAYMENT_METHODS),
   profileImage: z.string().optional().or(z.literal("")),
 });

@@ -10,6 +10,7 @@ import { ExpenseModalProvider } from "@/components/expenses/expense-modal-contex
 import { AddExpenseModal } from "@/components/expenses/add-expense-modal";
 import { IncomeModalProvider } from "@/components/income/income-modal-context";
 import { AddIncomeModal } from "@/components/income/add-income-modal";
+import { TrialBanner } from "./trial-banner";
 
 function pageTitleFor(pathname: string): string {
   const match = NAV_ITEMS.find(
@@ -22,10 +23,14 @@ export function AppShell({
   children,
   userName,
   userEmail,
+  subscriptionStatus,
+  trialDaysLeft,
 }: {
   children: ReactNode;
   userName: string;
   userEmail: string;
+  subscriptionStatus: "trial" | "active" | "expired";
+  trialDaysLeft: number;
 }) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const pathname = usePathname();
@@ -66,6 +71,7 @@ export function AppShell({
 
           {/* Main content */}
           <div className="flex min-h-screen flex-1 flex-col overflow-x-hidden">
+            <TrialBanner status={subscriptionStatus} trialDaysLeft={trialDaysLeft} />
             <Header title={pageTitleFor(pathname)} onMenuClick={() => setDrawerOpen(true)} />
             <main className="flex-1 px-4 py-5 sm:px-6 sm:py-6">{children}</main>
           </div>

@@ -3,8 +3,13 @@ import { connectDB } from "@/lib/db";
 import User from "@/models/User";
 import Category from "@/models/Category";
 import { registerSchema } from "@/lib/validations";
-import { setSessionCookie } from "@/lib/auth";
+import { setPendingCookie, setSessionCookie } from "@/lib/auth";
 import { DEFAULT_CATEGORIES } from "@/types";
+import { newTrialEndDate } from "@/lib/subscription";
+import { isDisposableEmail } from "@/lib/disposable-email-domains";
+import { generateOTP, hashOTP, otpExpiryDate } from "@/lib/otp";
+import { sendVerificationOTP } from "@/lib/email";
+import { ENABLE_LOGIN_OTP } from "@/lib/feature-flags";
 
 export async function POST(req: NextRequest) {
   try {
@@ -18,19 +23,68 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { name, email, password } = parsed.data;
+    const { name, email, phone, password } = parsed.data;
+
+    // Kept active regardless of the OTP flag - this is a real email format/
+    // domain check, not part of the OTP verification flow, so it should
+    // always reject obviously-fake addresses.
+    if (isDisposableEmail(email)) {
+      return NextResponse.json(
+        {
+          error:
+            "Please use a real, permanent email address. Temporary/disposable emails are not allowed.",
+        },
+        { status: 400 }
+      );
+    }
 
     await connectDB();
 
-    const existing = await User.findOne({ email: email.toLowerCase() });
-    if (existing) {
+    const existingEmail = await User.findOne({ email: email.toLowerCase() });
+    if (existingEmail) {
       return NextResponse.json(
         { error: "An account with this email already exists." },
         { status: 409 }
       );
     }
 
-    const user = await User.create({ name, email, password });
+    const existingPhone = await User.findOne({ phone });
+    if (existingPhone) {
+      return NextResponse.json(
+        { error: "An account with this phone number already exists." },
+        { status: 409 }
+      );
+    }
+
+    let user;
+
+    if (ENABLE_LOGIN_OTP) {
+      const otp = generateOTP();
+      user = await User.create({
+        name,
+        email,
+        phone,
+        password,
+        trialEndsAt: newTrialEndDate(),
+        subscriptionStatus: "trial",
+        emailVerified: false,
+        otpCodeHash: hashOTP(otp),
+        otpExpiresAt: otpExpiryDate(),
+        otpPurpose: "email_verification",
+        otpAttempts: 0,
+      });
+      await sendVerificationOTP(user.email, user.name, otp);
+    } else {
+      user = await User.create({
+        name,
+        email,
+        phone,
+        password,
+        trialEndsAt: newTrialEndDate(),
+        subscriptionStatus: "trial",
+        emailVerified: true,
+      });
+    }
 
     // Seed default categories for the new user
     await Category.insertMany(
@@ -39,8 +93,18 @@ export async function POST(req: NextRequest) {
         name: c.name,
         icon: c.icon,
         color: c.color,
+        isDefault: true,
       }))
     );
+
+    if (ENABLE_LOGIN_OTP) {
+      // Pending session only - full login happens after OTP verification.
+      await setPendingCookie({ userId: user._id.toString(), purpose: "email_verification" });
+      return NextResponse.json(
+        { requiresVerification: true, email: user.email },
+        { status: 201 }
+      );
+    }
 
     await setSessionCookie({
       userId: user._id.toString(),
@@ -50,11 +114,8 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(
       {
-        user: {
-          id: user._id.toString(),
-          name: user.name,
-          email: user.email,
-        },
+        requiresVerification: false,
+        user: { id: user._id.toString(), name: user.name, email: user.email },
       },
       { status: 201 }
     );

@@ -34,12 +34,17 @@ export function LoginForm() {
       });
       const json = await res.json();
       if (!res.ok) {
-        setServerError(json.error ?? "Invalid email or password.");
+        setServerError(json.error ?? "Invalid email/phone number or password.");
         return;
       }
-      toast.success("Login successful");
-      router.push("/dashboard");
-      router.refresh();
+      if (json.requiresVerification) {
+        toast.success("Code sent to your email.");
+        router.push("/verify-login");
+      } else {
+        toast.success("Login successful");
+        router.push("/dashboard");
+        router.refresh();
+      }
     } catch {
       setServerError("Unable to connect to server. Please try again.");
     }
@@ -54,15 +59,14 @@ export function LoginForm() {
 
       <form onSubmit={handleSubmit(onSubmit)} className="mt-6 space-y-4">
         <div>
-          <Label htmlFor="email">Email</Label>
+          <Label htmlFor="identifier">Email or Phone Number</Label>
           <Input
-            id="email"
-            type="email"
-            placeholder="you@example.com"
-            {...register("email")}
-            error={!!errors.email}
+            id="identifier"
+            placeholder="you@example.com or 9876543210"
+            {...register("identifier")}
+            error={!!errors.identifier}
           />
-          <FormError message={errors.email?.message} />
+          <FormError message={errors.identifier?.message} />
         </div>
         <div>
           <div className="flex items-center justify-between">

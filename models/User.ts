@@ -5,6 +5,7 @@ import type { PaymentMethod } from "@/types";
 export interface IUser extends Document {
   name: string;
   email: string;
+  phone: string;
   password: string;
   profileImage?: string;
   currency: string;
@@ -12,6 +13,15 @@ export interface IUser extends Document {
   defaultPaymentMethod: PaymentMethod;
   resetPasswordToken?: string;
   resetPasswordExpires?: Date;
+  trialEndsAt: Date;
+  subscriptionStatus: "trial" | "active" | "expired";
+  subscriptionExpiresAt?: Date;
+  razorpayCustomerId?: string;
+  emailVerified: boolean;
+  otpCodeHash?: string;
+  otpExpiresAt?: Date;
+  otpPurpose?: "email_verification" | "login";
+  otpAttempts?: number;
   createdAt: Date;
   updatedAt: Date;
   comparePassword(candidate: string): Promise<boolean>;
@@ -32,6 +42,13 @@ const UserSchema = new Schema<IUser>(
       lowercase: true,
       trim: true,
       match: [/^\S+@\S+\.\S+$/, "Please enter a valid email address"],
+    },
+    phone: {
+      type: String,
+      required: [true, "Phone number is required"],
+      unique: true,
+      trim: true,
+      match: [/^[6-9]\d{9}$/, "Please enter a valid 10-digit mobile number"],
     },
     password: {
       type: String,
@@ -63,6 +80,43 @@ const UserSchema = new Schema<IUser>(
     },
     resetPasswordExpires: {
       type: Date,
+      select: false,
+    },
+    trialEndsAt: {
+      type: Date,
+      required: true,
+    },
+    subscriptionStatus: {
+      type: String,
+      enum: ["trial", "active", "expired"],
+      default: "trial",
+    },
+    subscriptionExpiresAt: {
+      type: Date,
+    },
+    razorpayCustomerId: {
+      type: String,
+    },
+    emailVerified: {
+      type: Boolean,
+      default: false,
+    },
+    otpCodeHash: {
+      type: String,
+      select: false,
+    },
+    otpExpiresAt: {
+      type: Date,
+      select: false,
+    },
+    otpPurpose: {
+      type: String,
+      enum: ["email_verification", "login"],
+      select: false,
+    },
+    otpAttempts: {
+      type: Number,
+      default: 0,
       select: false,
     },
   },

@@ -37,9 +37,14 @@ export function RegisterForm() {
         setServerError(json.error ?? "Unable to create account.");
         return;
       }
-      toast.success("Account created. Welcome to Expense Diary!");
-      router.push("/dashboard");
-      router.refresh();
+      if (json.requiresVerification) {
+        toast.success("Account created. Check your email for a verification code.");
+        router.push("/verify-email");
+      } else {
+        toast.success("Account created. Welcome to Expense Diary!");
+        router.push("/dashboard");
+        router.refresh();
+      }
     } catch {
       setServerError("Unable to connect to server. Please try again.");
     }
@@ -68,6 +73,18 @@ export function RegisterForm() {
             error={!!errors.email}
           />
           <FormError message={errors.email?.message} />
+        </div>
+        <div>
+          <Label htmlFor="phone">Phone Number</Label>
+          <Input
+            id="phone"
+            type="tel"
+            inputMode="numeric"
+            placeholder="9876543210"
+            {...register("phone")}
+            error={!!errors.phone}
+          />
+          <FormError message={errors.phone?.message} />
         </div>
         <div>
           <Label htmlFor="password">Password</Label>

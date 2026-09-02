@@ -4,6 +4,7 @@ import { connectDB } from "@/lib/db";
 import Expense from "@/models/Expense";
 import Budget from "@/models/Budget";
 import User from "@/models/User";
+import Category from "@/models/Category";
 import RecurringExpense from "@/models/RecurringExpense";
 import { getSession } from "@/lib/auth";
 import { todayISO } from "@/lib/utils";
@@ -29,29 +30,48 @@ export async function GET() {
 
     const notifications: {
       id: string;
-      type: "budget_warning" | "budget_exceeded" | "recurring_due" | "large_expense";
+      type:
+        | "budget_warning"
+        | "budget_exceeded"
+        | "recurring_due"
+        | "large_expense"
+        | "category_limit_warning"
+        | "category_limit_exceeded";
       title: string;
       message: string;
       date: string;
     }[] = [];
 
-    const [monthAgg, budgetDoc, user, dueRecurring, largeExpenses] = await Promise.all([
-      Expense.aggregate([
-        { $match: { userId, date: { $gte: monthStart, $lte: monthEnd } } },
-        { $group: { _id: null, total: { $sum: "$amount" } } },
-      ]),
-      Budget.findOne({ userId, year, month }).lean(),
-      User.findById(userId).lean(),
-      RecurringExpense.find({
-        userId,
-        active: true,
-        nextDueDate: { $gte: today, $lte: new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10) },
-      }).lean(),
-      Expense.find({ userId, date: { $gte: monthStart, $lte: monthEnd }, amount: { $gte: LARGE_EXPENSE_THRESHOLD } })
-        .sort({ date: -1 })
-        .limit(5)
-        .lean(),
-    ]);
+    const [monthAgg, budgetDoc, user, dueRecurring, largeExpenses, limitedCategories, categorySpendAgg] =
+      await Promise.all([
+        Expense.aggregate([
+          { $match: { userId, date: { $gte: monthStart, $lte: monthEnd } } },
+          { $group: { _id: null, total: { $sum: "$amount" } } },
+        ]),
+        Budget.findOne({ userId, year, month }).lean(),
+        User.findById(userId).lean(),
+        RecurringExpense.find({
+          userId,
+          active: true,
+          nextDueDate: {
+            $gte: today,
+            $lte: new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10),
+          },
+        }).lean(),
+        Expense.find({
+          userId,
+          date: { $gte: monthStart, $lte: monthEnd },
+          amount: { $gte: LARGE_EXPENSE_THRESHOLD },
+        })
+          .sort({ date: -1 })
+          .limit(5)
+          .lean(),
+        Category.find({ userId, monthlyLimit: { $gt: 0 } }).lean(),
+        Expense.aggregate([
+          { $match: { userId, date: { $gte: monthStart, $lte: monthEnd } } },
+          { $group: { _id: "$category", total: { $sum: "$amount" } } },
+        ]),
+      ]);
 
     const monthTotal = monthAgg[0]?.total ?? 0;
     const budget = budgetDoc?.amount ?? user?.monthlyBudget ?? 0;
@@ -95,6 +115,35 @@ export async function GET() {
         message: `₹${e.amount.toLocaleString("en-IN")} spent at ${e.place} on ${e.date}.`,
         date: e.date,
       });
+    }
+
+    const spendByCategory = new Map(
+      categorySpendAgg.map((r) => [r._id as string, r.total as number])
+    );
+
+    for (const cat of limitedCategories) {
+      const spent = spendByCategory.get(cat.name) ?? 0;
+      const limit = cat.monthlyLimit ?? 0;
+      if (limit <= 0) continue;
+      const pct = (spent / limit) * 100;
+
+      if (pct >= 100) {
+        notifications.push({
+          id: `category-limit-exceeded-${cat._id}`,
+          type: "category_limit_exceeded",
+          title: `${cat.name} limit exceeded`,
+          message: `You've spent ₹${spent.toLocaleString("en-IN")} of your ₹${limit.toLocaleString("en-IN")} monthly limit for ${cat.name}.`,
+          date: today,
+        });
+      } else if (pct >= 80) {
+        notifications.push({
+          id: `category-limit-warning-${cat._id}`,
+          type: "category_limit_warning",
+          title: `Approaching ${cat.name} limit`,
+          message: `You've used ${Math.round(pct)}% of your monthly limit for ${cat.name}.`,
+          date: today,
+        });
+      }
     }
 
     notifications.sort((a, b) => (a.date < b.date ? 1 : -1));

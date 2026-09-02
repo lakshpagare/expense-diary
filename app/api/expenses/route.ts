@@ -3,6 +3,7 @@ import { connectDB } from "@/lib/db";
 import Expense from "@/models/Expense";
 import { getSession } from "@/lib/auth";
 import { expenseSchema } from "@/lib/validations";
+import { getCategoryLimitStatus } from "@/lib/category-limit";
 
 // GET /api/expenses?search=&category=&paymentMethod=&place=&dateFrom=&dateTo=&amountMin=&amountMax=&page=&limit=
 export async function GET(req: NextRequest) {
@@ -106,7 +107,16 @@ export async function POST(req: NextRequest) {
       userId: session.userId,
     });
 
-    return NextResponse.json({ expense }, { status: 201 });
+    // If this category has a monthly limit, check whether this expense
+    // pushed it to/over 100% so the client can show a warning. This never
+    // blocks the expense from being saved - it's informational only.
+    const categoryLimitStatus = await getCategoryLimitStatus(
+      session.userId,
+      parsed.data.category,
+      parsed.data.date
+    );
+
+    return NextResponse.json({ expense, categoryLimitStatus }, { status: 201 });
   } catch (err) {
     console.error("Create expense error:", err);
     return NextResponse.json(
