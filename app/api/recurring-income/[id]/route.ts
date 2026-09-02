@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import mongoose from "mongoose";
 import { connectDB } from "@/lib/db";
-import RecurringExpense from "@/models/RecurringExpense";
+import RecurringIncome from "@/models/RecurringIncome";
 import { getSession } from "@/lib/auth";
-import { recurringExpenseSchema } from "@/lib/validations";
+import { recurringIncomeSchema } from "@/lib/validations";
 import { computeNextDueDate } from "@/lib/recurring";
 
 export async function PUT(
@@ -17,12 +17,12 @@ export async function PUT(
 
   const { id } = await params;
   if (!mongoose.Types.ObjectId.isValid(id)) {
-    return NextResponse.json({ error: "Recurring expense not found." }, { status: 404 });
+    return NextResponse.json({ error: "Recurring income not found." }, { status: 404 });
   }
 
   try {
     const body = await req.json();
-    const parsed = recurringExpenseSchema.safeParse(body);
+    const parsed = recurringIncomeSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json(
         { error: parsed.error.issues[0]?.message ?? "Invalid input" },
@@ -32,36 +32,29 @@ export async function PUT(
 
     await connectDB();
 
-    const existing = await RecurringExpense.findOne({ _id: id, userId: session.userId });
+    const existing = await RecurringIncome.findOne({ _id: id, userId: session.userId });
     if (!existing) {
-      return NextResponse.json({ error: "Recurring expense not found." }, { status: 404 });
+      return NextResponse.json({ error: "Recurring income not found." }, { status: 404 });
     }
 
-    // Only recompute nextDueDate if the start date or frequency actually
-    // changed - otherwise preserve it, since it may have already been
-    // advanced past the original start date via "Log now".
     const startDateChanged = existing.startDate !== parsed.data.startDate;
     const frequencyChanged = existing.frequency !== parsed.data.frequency;
-    const nextDueDate =
+    const nextIncomeDate =
       startDateChanged || frequencyChanged
         ? computeNextDueDate(parsed.data.startDate, parsed.data.frequency)
-        : existing.nextDueDate;
+        : existing.nextIncomeDate;
 
-    const item = await RecurringExpense.findOneAndUpdate(
+    const item = await RecurringIncome.findOneAndUpdate(
       { _id: id, userId: session.userId },
-      { $set: { ...parsed.data, nextDueDate } },
+      { $set: { ...parsed.data, nextIncomeDate } },
       { new: true, runValidators: true }
     );
 
-    if (!item) {
-      return NextResponse.json({ error: "Recurring expense not found." }, { status: 404 });
-    }
-
     return NextResponse.json({ item });
   } catch (err) {
-    console.error("Update recurring expense error:", err);
+    console.error("Update recurring income error:", err);
     return NextResponse.json(
-      { error: "Unable to update recurring expense." },
+      { error: "Unable to update recurring income." },
       { status: 500 }
     );
   }
@@ -78,20 +71,20 @@ export async function DELETE(
 
   const { id } = await params;
   if (!mongoose.Types.ObjectId.isValid(id)) {
-    return NextResponse.json({ error: "Recurring expense not found." }, { status: 404 });
+    return NextResponse.json({ error: "Recurring income not found." }, { status: 404 });
   }
 
   try {
     await connectDB();
-    const item = await RecurringExpense.findOneAndDelete({ _id: id, userId: session.userId });
+    const item = await RecurringIncome.findOneAndDelete({ _id: id, userId: session.userId });
     if (!item) {
-      return NextResponse.json({ error: "Recurring expense not found." }, { status: 404 });
+      return NextResponse.json({ error: "Recurring income not found." }, { status: 404 });
     }
     return NextResponse.json({ success: true });
   } catch (err) {
-    console.error("Delete recurring expense error:", err);
+    console.error("Delete recurring income error:", err);
     return NextResponse.json(
-      { error: "Unable to delete recurring expense." },
+      { error: "Unable to delete recurring income." },
       { status: 500 }
     );
   }

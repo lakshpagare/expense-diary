@@ -97,7 +97,7 @@ export type IncomeInput = z.infer<typeof incomeSchema>;
 
 export const recurringIncomeSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(100),
-  amount: z.coerce.number().positive("Please enter a valid amount."),
+  amount: z.number().positive("Please enter a valid amount."),
   category: z.enum(INCOME_CATEGORY_NAMES as [string, ...string[]], {
     message: "Please select a category.",
   }),
@@ -143,7 +143,7 @@ export const budgetSchema = z.object({
 
 export const recurringExpenseSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(100),
-  amount: z.coerce.number().positive("Please enter a valid amount."),
+  amount: z.number().positive("Please enter a valid amount."),
   category: z.string().trim().min(1, "Please select a category."),
   frequency: z.enum(RECURRING_FREQUENCIES, {
     message: "Please select a frequency.",
@@ -151,6 +151,9 @@ export const recurringExpenseSchema = z.object({
   startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Please select a valid start date."),
   active: z.boolean().optional(),
 });
+
+export type RecurringExpenseInput = z.infer<typeof recurringExpenseSchema>;
+export type RecurringIncomeInput = z.infer<typeof recurringIncomeSchema>;
 
 export const profileSchema = z.object({
   name: z.string().trim().min(2, "Name must be at least 2 characters").max(100),

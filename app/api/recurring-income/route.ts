@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/db";
-import RecurringExpense from "@/models/RecurringExpense";
+import RecurringIncome from "@/models/RecurringIncome";
 import { getSession } from "@/lib/auth";
-import { recurringExpenseSchema } from "@/lib/validations";
+import { recurringIncomeSchema } from "@/lib/validations";
 import { computeNextDueDate } from "@/lib/recurring";
 
 export async function GET() {
@@ -13,16 +13,13 @@ export async function GET() {
 
   try {
     await connectDB();
-    const items = await RecurringExpense.find({ userId: session.userId }).sort({
-      nextDueDate: 1,
+    const items = await RecurringIncome.find({ userId: session.userId }).sort({
+      nextIncomeDate: 1,
     });
     return NextResponse.json({ items });
   } catch (err) {
-    console.error("List recurring expenses error:", err);
-    return NextResponse.json(
-      { error: "Unable to load recurring expenses." },
-      { status: 500 }
-    );
+    console.error("List recurring income error:", err);
+    return NextResponse.json({ error: "Unable to load recurring income." }, { status: 500 });
   }
 }
 
@@ -34,7 +31,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const parsed = recurringExpenseSchema.safeParse(body);
+    const parsed = recurringIncomeSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json(
         { error: parsed.error.issues[0]?.message ?? "Invalid input" },
@@ -44,18 +41,18 @@ export async function POST(req: NextRequest) {
 
     await connectDB();
 
-    const item = await RecurringExpense.create({
+    const item = await RecurringIncome.create({
       ...parsed.data,
       active: parsed.data.active ?? true,
-      nextDueDate: computeNextDueDate(parsed.data.startDate, parsed.data.frequency),
+      nextIncomeDate: computeNextDueDate(parsed.data.startDate, parsed.data.frequency),
       userId: session.userId,
     });
 
     return NextResponse.json({ item }, { status: 201 });
   } catch (err) {
-    console.error("Create recurring expense error:", err);
+    console.error("Create recurring income error:", err);
     return NextResponse.json(
-      { error: "Unable to save recurring expense. Please try again." },
+      { error: "Unable to save recurring income. Please try again." },
       { status: 500 }
     );
   }
