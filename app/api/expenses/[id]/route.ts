@@ -5,6 +5,7 @@ import Expense from "@/models/Expense";
 import { getSession } from "@/lib/auth";
 import { expenseSchema } from "@/lib/validations";
 import { getCategoryLimitStatus } from "@/lib/category-limit";
+import { recordAuditLog, diffFieldNames } from "@/lib/audit-log";
 
 function isValidId(id: string) {
   return mongoose.Types.ObjectId.isValid(id);
@@ -63,6 +64,9 @@ export async function PUT(
 
     await connectDB();
 
+    // Fetch the pre-edit state for the audit log diff (field names only).
+    const before = await Expense.findOne({ _id: id, userId: session.userId }).lean();
+
     // Ownership enforced via the userId filter - a user can never edit
     // another user's expense, even if they know the id.
     const expense = await Expense.findOneAndUpdate(
@@ -73,6 +77,22 @@ export async function PUT(
 
     if (!expense) {
       return NextResponse.json({ error: "Expense not found." }, { status: 404 });
+    }
+
+    if (before) {
+      const changedFields = diffFieldNames(
+        before as unknown as Record<string, unknown>,
+        parsed.data
+      );
+      if (changedFields.length > 0) {
+        await recordAuditLog({
+          userId: session.userId,
+          action: "TRANSACTION_UPDATED",
+          transactionType: "expense",
+          transactionId: id,
+          changedFields,
+        });
+      }
     }
 
     const categoryLimitStatus = await getCategoryLimitStatus(
@@ -107,10 +127,27 @@ export async function DELETE(
 
   try {
     await connectDB();
-    const expense = await Expense.findOneAndDelete({ _id: id, userId: session.userId });
+
+    // Soft delete only - the document moves to Trash, it is never removed
+    // from MongoDB here. Permanent removal only happens via the dedicated
+    // /permanent route, and only for documents already in Trash.
+    const expense = await Expense.findOneAndUpdate(
+      { _id: id, userId: session.userId },
+      { $set: { isDeleted: true, deletedAt: new Date(), deletedBy: session.userId } },
+      { new: true }
+    );
+
     if (!expense) {
       return NextResponse.json({ error: "Expense not found." }, { status: 404 });
     }
+
+    await recordAuditLog({
+      userId: session.userId,
+      action: "TRANSACTION_DELETED",
+      transactionType: "expense",
+      transactionId: id,
+    });
+
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error("Delete expense error:", err);

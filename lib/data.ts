@@ -684,3 +684,61 @@ export async function getIncomeAnalytics(userId: string, months = 6): Promise<In
   };
 }
 
+/* ------------------------------------------------------------------ */
+/* Budgets                                                              */
+/* ------------------------------------------------------------------ */
+
+export interface BudgetHistoryPoint {
+  month: number;
+  year: number;
+  label: string;
+  budget: number;
+  spent: number;
+  remaining: number;
+  status: "no-budget" | "under" | "warning" | "over";
+}
+
+export async function getBudgetHistory(userId: string, months = 6): Promise<BudgetHistoryPoint[]> {
+  await connectDB();
+  const uid = new mongoose.Types.ObjectId(userId);
+  const now = new Date();
+
+  const points: BudgetHistoryPoint[] = [];
+
+  for (let i = 0; i < months; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const year = d.getFullYear();
+    const month = d.getMonth() + 1;
+    const { start, end } = monthRange(year, month);
+
+    const [budgetDoc, spendAgg] = await Promise.all([
+      Budget.findOne({ userId: uid, year, month }).lean(),
+      Expense.aggregate([
+        { $match: { userId: uid, date: { $gte: start, $lte: end } } },
+        { $group: { _id: null, total: { $sum: "$amount" } } },
+      ]),
+    ]);
+
+    const budget = budgetDoc?.amount ?? 0;
+    const spent = spendAgg[0]?.total ?? 0;
+    const pct = budget > 0 ? (spent / budget) * 100 : 0;
+
+    let status: BudgetHistoryPoint["status"] = "no-budget";
+    if (budget > 0) {
+      status = pct >= 100 ? "over" : pct >= 80 ? "warning" : "under";
+    }
+
+    points.push({
+      month,
+      year,
+      label: d.toLocaleDateString("en-IN", { month: "short", year: "numeric" }),
+      budget,
+      spent,
+      remaining: budget - spent,
+      status,
+    });
+  }
+
+  return points;
+}
+

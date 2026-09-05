@@ -32,10 +32,22 @@ function getStoredTheme(): Theme {
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>(getStoredTheme);
+  // Always start with "system" on both the server-rendered HTML and the
+  // client's first (hydration) render pass. Reading localStorage inside a
+  // useState initializer runs during that first client render too, and
+  // since window/localStorage don't exist on the server, that produced a
+  // different value than the server used - a classic hydration mismatch.
+  // Instead, the real stored value is only read after mount, in an effect.
+  const [theme, setThemeState] = useState<Theme>("system");
 
   useEffect(() => {
-    applyTheme(theme);
+    // Reading localStorage requires an effect since it doesn't exist during
+    // SSR - this is the standard "sync with an external system on mount"
+    // exception, not an avoidable derived-state case.
+    const stored = getStoredTheme();
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setThemeState(stored);
+    applyTheme(stored);
 
     const media = window.matchMedia("(prefers-color-scheme: dark)");
     const listener = () => {
@@ -44,7 +56,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     };
     media.addEventListener("change", listener);
     return () => media.removeEventListener("change", listener);
-  }, [theme]);
+  }, []);
 
   const setTheme = (t: Theme) => {
     setThemeState(t);

@@ -4,6 +4,7 @@ import Expense from "@/models/Expense";
 import { getSession } from "@/lib/auth";
 import { expenseSchema } from "@/lib/validations";
 import { getCategoryLimitStatus } from "@/lib/category-limit";
+import { recordAuditLog } from "@/lib/audit-log";
 
 // GET /api/expenses?search=&category=&paymentMethod=&place=&dateFrom=&dateTo=&amountMin=&amountMax=&page=&limit=
 export async function GET(req: NextRequest) {
@@ -105,6 +106,13 @@ export async function POST(req: NextRequest) {
     const expense = await Expense.create({
       ...parsed.data,
       userId: session.userId,
+    });
+
+    await recordAuditLog({
+      userId: session.userId,
+      action: "TRANSACTION_CREATED",
+      transactionType: "expense",
+      transactionId: expense._id.toString(),
     });
 
     // If this category has a monthly limit, check whether this expense

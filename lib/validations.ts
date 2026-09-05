@@ -136,10 +136,12 @@ export const categoryLimitSchema = z.object({
 });
 
 export const budgetSchema = z.object({
-  month: z.coerce.number().int().min(1).max(12),
-  year: z.coerce.number().int().min(2000),
-  amount: z.coerce.number().min(0, "Please enter a valid budget amount."),
+  month: z.number().int().min(1).max(12),
+  year: z.number().int().min(2000),
+  amount: z.number().min(0, "Please enter a valid budget amount."),
 });
+
+export type BudgetInput = z.infer<typeof budgetSchema>;
 
 export const recurringExpenseSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(100),

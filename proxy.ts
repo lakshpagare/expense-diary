@@ -16,6 +16,7 @@ const PROTECTED_PREFIXES = [
   "/categories",
   "/settings",
   "/subscribe",
+  "/trash",
 ];
 
 const AUTH_PAGES = [
@@ -74,6 +75,7 @@ export const config = {
     "/categories/:path*",
     "/settings/:path*",
     "/subscribe",
+    "/trash",
     "/login",
     "/register",
     "/forgot-password",

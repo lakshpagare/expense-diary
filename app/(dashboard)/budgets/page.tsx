@@ -1,171 +1,94 @@
-"use client";
+import { getSession } from "@/lib/auth";
+import { connectDB } from "@/lib/db";
+import Budget from "@/models/Budget";
+import {
+  getDashboardSummary,
+  getFinancialOverview,
+  getBudgetHistory,
+} from "@/lib/data";
+import { Card, CardContent } from "@/components/ui/card";
+import { BudgetProgressCard } from "@/components/dashboard/budget-progress-card";
+import { BudgetForm } from "@/components/budgets/budget-form";
+import { BudgetHistoryTable } from "@/components/budgets/budget-history-table";
+import { formatCurrency } from "@/lib/utils";
 
-import { useState, useEffect, useCallback } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { toast } from "sonner";
-import type { BudgetDTO } from "@/types";
+export default async function BudgetsPage() {
+  const session = await getSession();
+  const userId = session!.userId;
 
-export default function BudgetsPage() {
-  const [budgets, setBudgets] = useState<BudgetDTO[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [month, setMonth] = useState(new Date().getMonth() + 1);
-  const [year, setYear] = useState(new Date().getFullYear());
-  const [amount, setAmount] = useState("");
+  await connectDB();
 
-  const loadBudgets = useCallback(async () => {
-    try {
-      const res = await fetch(`/api/budgets?month=${month}&year=${year}`);
-      const data = await res.json();
-      setBudgets(data.budgets ?? []);
-    } catch (err) {
-      console.error("Error loading budgets:", err);
-      toast.error("Unable to load budgets");
-    } finally {
-      setLoading(false);
-    }
-  }, [month, year]);
+  const now = new Date();
+  const month = now.getMonth() + 1;
+  const year = now.getFullYear();
 
-  useEffect(() => {
-    const timeoutId = window.setTimeout(() => {
-      void loadBudgets();
-    }, 0);
+  const [summary, budgetDoc, history] = await Promise.all([
+    getDashboardSummary(userId),
+    Budget.findOne({ userId, month, year }).lean(),
+    getBudgetHistory(userId, 6),
+  ]);
 
-    return () => window.clearTimeout(timeoutId);
-  }, [loadBudgets]);
-
-  const handleSaveBudget = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!amount) {
-      toast.error("Please enter a budget amount");
-      return;
-    }
-
-    try {
-      const res = await fetch("/api/budgets", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          month,
-          year,
-          amount: Number(amount),
-        }),
-      });
-
-      if (!res.ok) {
-        const error = await res.json();
-        toast.error(error.error ?? "Failed to save budget");
-        return;
-      }
-
-      toast.success("Budget saved successfully");
-      setAmount("");
-      loadBudgets();
-    } catch (err) {
-      console.error("Error saving budget:", err);
-      toast.error("Unable to save budget");
-    }
-  };
+  const financialOverview = await getFinancialOverview(userId, summary.monthTotal);
+  const currentBudget = budgetDoc?.amount ?? summary.monthlyBudget ?? 0;
 
   return (
-    <div className="space-y-6">
+    <div className="mx-auto max-w-3xl space-y-6">
       <div>
         <h1 className="text-2xl font-semibold text-foreground">Budgets</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Set and track your monthly budgets
+          Set a monthly spending limit and track how you&apos;re doing against it.
         </p>
       </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle>Set Monthly Budget</CardTitle>
-        </CardHeader>
         <CardContent>
-          <form onSubmit={handleSaveBudget} className="space-y-4">
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-              <div>
-                <Label htmlFor="month">Month</Label>
-                <select
-                  id="month"
-                  value={month}
-                  onChange={(e) => setMonth(Number(e.target.value))}
-                  className="w-full rounded-lg border border-border bg-background px-3 py-2"
-                >
-                  {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
-                    <option key={m} value={m}>
-                      {new Date(2000, m - 1).toLocaleString("en-US", {
-                        month: "long",
-                      })}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <Label htmlFor="year">Year</Label>
-                <Input
-                  id="year"
-                  type="number"
-                  value={year}
-                  onChange={(e) => setYear(Number(e.target.value))}
-                />
-              </div>
-              <div>
-                <Label htmlFor="amount">Budget Amount (₹)</Label>
-                <Input
-                  id="amount"
-                  type="number"
-                  step="0.01"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  placeholder="0.00"
-                />
-              </div>
-            </div>
-            <Button type="submit" className="w-full">
-              Save Budget
-            </Button>
-          </form>
+          <h2 className="text-base font-semibold text-foreground">This Month&apos;s Budget</h2>
+          <div className="mt-3">
+            <BudgetForm month={month} year={year} currentAmount={currentBudget} />
+          </div>
         </CardContent>
       </Card>
 
+      <BudgetProgressCard
+        budget={currentBudget}
+        spent={summary.monthTotal}
+        currency={summary.currency}
+      />
+
+      {/* Budget + Income integration */}
       <Card>
-        <CardHeader>
-          <CardTitle>Your Budgets</CardTitle>
-        </CardHeader>
         <CardContent>
-          {loading ? (
-            <div className="text-sm text-muted-foreground">Loading...</div>
-          ) : budgets.length === 0 ? (
-            <div className="text-sm text-muted-foreground">
-              No budgets set yet. Create one above.
+          <h2 className="text-base font-semibold text-foreground">Financial Snapshot</h2>
+          <div className="mt-3 grid grid-cols-2 gap-4 sm:grid-cols-4">
+            <div>
+              <p className="text-xs text-muted-foreground">Monthly Income</p>
+              <p className="mt-1 text-lg font-semibold text-brand">
+                {formatCurrency(financialOverview.totalIncome, summary.currency)}
+              </p>
             </div>
-          ) : (
-            <div className="space-y-2">
-              {budgets.map((budget) => (
-                <div
-                  key={budget._id}
-                  className="flex items-center justify-between rounded-lg border border-border p-3"
-                >
-                  <div>
-                    <p className="font-medium text-foreground">
-                      {new Date(2000, budget.month - 1).toLocaleString(
-                        "en-US",
-                        { month: "long" },
-                      )}{" "}
-                      {budget.year}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      Budget: ₹{budget.amount.toLocaleString("en-IN")}
-                    </p>
-                  </div>
-                </div>
-              ))}
+            <div>
+              <p className="text-xs text-muted-foreground">Monthly Budget</p>
+              <p className="mt-1 text-lg font-semibold text-foreground">
+                {currentBudget > 0 ? formatCurrency(currentBudget, summary.currency) : "—"}
+              </p>
             </div>
-          )}
+            <div>
+              <p className="text-xs text-muted-foreground">Expenses</p>
+              <p className="mt-1 text-lg font-semibold text-destructive">
+                {formatCurrency(summary.monthTotal, summary.currency)}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Savings</p>
+              <p className="mt-1 text-lg font-semibold text-foreground">
+                {formatCurrency(financialOverview.netSavings, summary.currency)}
+              </p>
+            </div>
+          </div>
         </CardContent>
       </Card>
+
+      <BudgetHistoryTable history={history} />
     </div>
   );
 }

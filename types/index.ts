@@ -59,6 +59,9 @@ export interface ExpenseDTO {
   paymentMethod: PaymentMethod;
   notes?: string;
   receipt?: string;
+  isDeleted?: boolean;
+  deletedAt?: string;
+  deletedBy?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -158,9 +161,16 @@ export interface IncomeDTO {
   incomeType: IncomeType;
   notes?: string;
   attachment?: string;
+  isDeleted?: boolean;
+  deletedAt?: string;
+  deletedBy?: string;
   createdAt: string;
   updatedAt: string;
 }
+
+export type TrashItemDTO =
+  | (ExpenseDTO & { transactionType: "expense" })
+  | (IncomeDTO & { transactionType: "income" });
 
 export const RECURRING_INCOME_FREQUENCIES = ["Weekly", "Monthly", "Yearly"] as const;
 export type RecurringIncomeFrequency = (typeof RECURRING_INCOME_FREQUENCIES)[number];

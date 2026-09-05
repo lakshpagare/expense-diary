@@ -1,5 +1,6 @@
 import mongoose, { Schema, Model, Document, Types } from "mongoose";
 import type { IncomeType } from "@/types";
+import { applySoftDelete } from "@/lib/soft-delete-plugin";
 
 export interface IIncome extends Document {
   userId: Types.ObjectId;
@@ -12,6 +13,9 @@ export interface IIncome extends Document {
   incomeType: IncomeType;
   notes?: string;
   attachment?: string;
+  isDeleted: boolean;
+  deletedAt?: Date;
+  deletedBy?: Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -80,6 +84,8 @@ IncomeSchema.index({ userId: 1, date: -1 });
 IncomeSchema.index({ userId: 1, category: 1 });
 IncomeSchema.index({ userId: 1, incomeType: 1 });
 IncomeSchema.index({ userId: 1, source: "text", description: "text", notes: "text" });
+
+applySoftDelete(IncomeSchema);
 
 const Income: Model<IIncome> =
   mongoose.models.Income || mongoose.model<IIncome>("Income", IncomeSchema);

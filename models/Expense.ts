@@ -1,5 +1,6 @@
 import mongoose, { Schema, Model, Document, Types } from "mongoose";
 import type { PaymentMethod } from "@/types";
+import { applySoftDelete } from "@/lib/soft-delete-plugin";
 
 export interface IExpense extends Document {
   userId: Types.ObjectId;
@@ -13,6 +14,9 @@ export interface IExpense extends Document {
   paymentMethod: PaymentMethod;
   notes?: string;
   receipt?: string;
+  isDeleted: boolean;
+  deletedAt?: Date;
+  deletedBy?: Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -87,6 +91,8 @@ ExpenseSchema.index({ userId: 1, category: 1 });
 ExpenseSchema.index({ userId: 1, paymentMethod: 1 });
 ExpenseSchema.index({ userId: 1, place: 1 });
 ExpenseSchema.index({ userId: 1, place: "text", item: "text", description: "text" });
+
+applySoftDelete(ExpenseSchema);
 
 const Expense: Model<IExpense> =
   mongoose.models.Expense || mongoose.model<IExpense>("Expense", ExpenseSchema);

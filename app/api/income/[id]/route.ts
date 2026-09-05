@@ -4,6 +4,7 @@ import { connectDB } from "@/lib/db";
 import Income from "@/models/Income";
 import { getSession } from "@/lib/auth";
 import { incomeSchema } from "@/lib/validations";
+import { recordAuditLog, diffFieldNames } from "@/lib/audit-log";
 
 function isValidId(id: string) {
   return mongoose.Types.ObjectId.isValid(id);
@@ -62,6 +63,8 @@ export async function PUT(
 
     await connectDB();
 
+    const before = await Income.findOne({ _id: id, userId: session.userId }).lean();
+
     // Ownership enforced via the userId filter - a user can never edit
     // another user's income, even if they know the id.
     const income = await Income.findOneAndUpdate(
@@ -72,6 +75,22 @@ export async function PUT(
 
     if (!income) {
       return NextResponse.json({ error: "Income not found." }, { status: 404 });
+    }
+
+    if (before) {
+      const changedFields = diffFieldNames(
+        before as unknown as Record<string, unknown>,
+        parsed.data
+      );
+      if (changedFields.length > 0) {
+        await recordAuditLog({
+          userId: session.userId,
+          action: "TRANSACTION_UPDATED",
+          transactionType: "income",
+          transactionId: id,
+          changedFields,
+        });
+      }
     }
 
     return NextResponse.json({ income });
@@ -100,10 +119,24 @@ export async function DELETE(
 
   try {
     await connectDB();
-    const income = await Income.findOneAndDelete({ _id: id, userId: session.userId });
+
+    const income = await Income.findOneAndUpdate(
+      { _id: id, userId: session.userId },
+      { $set: { isDeleted: true, deletedAt: new Date(), deletedBy: session.userId } },
+      { new: true }
+    );
+
     if (!income) {
       return NextResponse.json({ error: "Income not found." }, { status: 404 });
     }
+
+    await recordAuditLog({
+      userId: session.userId,
+      action: "TRANSACTION_DELETED",
+      transactionType: "income",
+      transactionId: id,
+    });
+
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error("Delete income error:", err);

@@ -9,6 +9,7 @@ import {
   Tags,
   Settings,
   WalletCards,
+  Trash2,
   type LucideIcon,
 } from "lucide-react";
 
@@ -28,5 +29,6 @@ export const NAV_ITEMS: NavItem[] = [
   { label: "Budgets", href: "/budgets", icon: Wallet },
   { label: "Recurring Expenses", href: "/recurring-expenses", icon: Repeat },
   { label: "Categories", href: "/categories", icon: Tags },
+  { label: "Trash", href: "/trash", icon: Trash2 },
   { label: "Settings", href: "/settings", icon: Settings },
 ];

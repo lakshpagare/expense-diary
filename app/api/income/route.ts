@@ -3,6 +3,7 @@ import { connectDB } from "@/lib/db";
 import Income from "@/models/Income";
 import { getSession } from "@/lib/auth";
 import { incomeSchema } from "@/lib/validations";
+import { recordAuditLog } from "@/lib/audit-log";
 
 // GET /api/income?search=&category=&incomeType=&dateFrom=&dateTo=&amountMin=&amountMax=&page=&limit=
 export async function GET(req: NextRequest) {
@@ -98,6 +99,13 @@ export async function POST(req: NextRequest) {
     const income = await Income.create({
       ...parsed.data,
       userId: session.userId,
+    });
+
+    await recordAuditLog({
+      userId: session.userId,
+      action: "TRANSACTION_CREATED",
+      transactionType: "income",
+      transactionId: income._id.toString(),
     });
 
     return NextResponse.json({ income }, { status: 201 });
