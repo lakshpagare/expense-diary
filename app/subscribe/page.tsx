@@ -1,6 +1,7 @@
 import Link from "next/link";
+import Image from "next/image";
 import { redirect } from "next/navigation";
-import { BookOpenText, Check, LogOut, ArrowLeft } from "lucide-react";
+import { Check, LogOut, ArrowLeft } from "lucide-react";
 import { getSession, clearSessionCookie } from "@/lib/auth";
 import { connectDB } from "@/lib/db";
 import User from "@/models/User";
@@ -44,14 +45,14 @@ export default async function SubscribePage() {
       ? `Your subscription renews on ${subscription.subscriptionExpiresAt?.toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}. You can renew early below to extend it further.`
       : subscription.status === "trial"
         ? `${subscription.trialDaysLeft} day${subscription.trialDaysLeft === 1 ? "" : "s"} left in your free trial. Subscribe now for ₹${SUBSCRIPTION_PRICE_RUPEES}/month to keep uninterrupted access.`
-        : `Subscribe for ₹${SUBSCRIPTION_PRICE_RUPEES}/month to keep full access to your Expense Diary.`;
+        : `Subscribe for ₹${SUBSCRIPTION_PRICE_RUPEES}/month to keep full access to your account.`;
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4 py-12">
       <div className="w-full max-w-md">
         <div className="mb-6 flex items-center justify-center gap-2 text-brand">
-          <BookOpenText className="h-6 w-6" />
-          <span className="font-semibold">Expense Diary</span>
+          <Image src="/logo-96.png" alt="Expenses and Incomes Trackers" width={28} height={28} className="rounded-md" />
+          <span className="font-semibold">Expenses and Incomes Trackers</span>
         </div>
 
         <Card>

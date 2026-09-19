@@ -5,14 +5,14 @@ import { ThemeProvider } from "@/components/layout/theme-provider";
 import { ServiceWorkerRegistration } from "@/components/layout/service-worker-registration";
 
 export const metadata: Metadata = {
-  title: "Expense Diary — Track every rupee. Understand every expense.",
+  title: "Expenses and Incomes Trackers — Track every rupee. Understand every expense.",
   description:
-    "A personal daily expense diary and finance dashboard. Log every expense, understand your spending, and stay on budget.",
+    "A personal daily expense and income diary and finance dashboard. Log every expense, understand your spending, and stay on budget.",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Expense Diary",
+    title: "Expenses and Incomes Trackers",
   },
   icons: {
     icon: [

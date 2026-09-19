@@ -41,7 +41,7 @@ export function RegisterForm() {
         toast.success("Account created. Check your email for a verification code.");
         router.push("/verify-email");
       } else {
-        toast.success("Account created. Welcome to Expense Diary!");
+        toast.success("Account created. Welcome to Expenses and Incomes Trackers!");
         router.push("/dashboard");
         router.refresh();
       }

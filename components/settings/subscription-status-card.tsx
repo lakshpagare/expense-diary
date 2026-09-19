@@ -12,7 +12,7 @@ export function SubscriptionStatusCard({ subscription }: { subscription: Subscri
       <CardContent>
         <h2 className="text-base font-semibold text-foreground">Subscription</h2>
         <p className="mt-0.5 text-sm text-muted-foreground">
-          Manage your Expense Diary plan.
+          Manage your Expenses and Incomes Trackers plan.
         </p>
 
         <div className="mt-4 flex items-start gap-3 rounded-xl border border-border bg-muted/40 p-4">
@@ -52,7 +52,7 @@ export function SubscriptionStatusCard({ subscription }: { subscription: Subscri
               <>
                 <p className="text-sm font-medium text-foreground">Subscription expired</p>
                 <p className="mt-0.5 text-sm text-muted-foreground">
-                  Subscribe again to regain access to your Expense Diary.
+                  Subscribe again to regain access to your account.
                 </p>
               </>
             )}

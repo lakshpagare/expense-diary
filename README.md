@@ -1,4 +1,4 @@
-# Expense Diary
+# Expenses and Incomes Trackers
 
 **Track every rupee. Understand every expense.**
 

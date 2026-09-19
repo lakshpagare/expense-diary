@@ -53,7 +53,7 @@ export function SubscribeButton({ userName, userEmail }: { userName: string; use
         key: orderData.keyId,
         amount: orderData.amount,
         currency: orderData.currency,
-        name: "Expense Diary",
+        name: "Expenses and Incomes Trackers",
         description: "Monthly subscription",
         order_id: orderData.orderId,
         prefill: { name: userName, email: userEmail },

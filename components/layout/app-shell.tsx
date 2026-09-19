@@ -16,7 +16,7 @@ function pageTitleFor(pathname: string): string {
   const match = NAV_ITEMS.find(
     (item) => pathname === item.href || pathname.startsWith(item.href + "/")
   );
-  return match?.label ?? "Expense Diary";
+  return match?.label ?? "Expenses and Incomes Trackers";
 }
 
 export function AppShell({

@@ -1,4 +1,4 @@
-import { BookOpenText } from "lucide-react";
+import Image from "next/image";
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -13,10 +13,10 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           }}
         />
         <div className="relative flex items-center gap-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand">
-            <BookOpenText className="h-5 w-5 text-white" />
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg">
+            <Image src="/logo-96.png" alt="Expenses and Incomes Trackers" width={36} height={36} />
           </div>
-          <span className="text-lg font-semibold">Expense Diary</span>
+          <span className="text-lg font-semibold">Expenses and Incomes Trackers</span>
         </div>
 
         <div className="relative space-y-4">
@@ -26,15 +26,15 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
             Understand every expense.
           </h1>
           <p className="max-w-sm text-sm text-slate-300">
-            A daily expense diary that shows you exactly where your money
-            goes — by category, place, and time of day — so budgeting stops
-            feeling like guesswork.
+            A daily expense and income diary that shows you exactly where your
+            money goes — by category, place, and time of day — so budgeting
+            stops feeling like guesswork.
           </p>
         </div>
 
         <p className="relative text-xs text-slate-400">
-          © {new Date().getFullYear()} Expense Diary. Built for people who
-          want to actually understand their spending.
+          © {new Date().getFullYear()} Expenses and Incomes Trackers. Built for
+          people who want to actually understand their spending.
         </p>
       </div>
 

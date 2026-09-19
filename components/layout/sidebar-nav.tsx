@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
-import { BookOpenText, LogOut } from "lucide-react";
+import { LogOut } from "lucide-react";
 import { NAV_ITEMS } from "./nav-items";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -31,10 +32,10 @@ export function SidebarNav({ userName, userEmail, onNavigate }: SidebarProps) {
         className="flex items-center gap-2 px-5 py-5"
         onClick={onNavigate}
       >
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand">
-          <BookOpenText className="h-4.5 w-4.5 text-white" />
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-lg">
+          <Image src="/logo-96.png" alt="Expenses and Incomes Trackers" width={32} height={32} />
         </div>
-        <span className="text-base font-semibold text-foreground">Expense Diary</span>
+        <span className="truncate text-base font-semibold text-foreground">Expenses and Incomes Trackers</span>
       </Link>
 
       <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-2">

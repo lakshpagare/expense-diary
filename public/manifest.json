@@ -1,6 +1,6 @@
 {
-  "name": "Expense Diary",
-  "short_name": "Expense Diary",
+  "name": "Expenses and Incomes Trackers",
+  "short_name": "Trackers",
   "description": "Track every rupee. Understand every expense.",
   "start_url": "/dashboard",
   "id": "/dashboard",

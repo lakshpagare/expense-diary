@@ -12,6 +12,7 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(
       <div className="relative">
         <select
           ref={ref}
+          suppressHydrationWarning
           className={cn(
             "flex h-11 w-full appearance-none rounded-xl border bg-card px-3.5 pr-9 text-sm text-foreground transition-colors",
             "focus:outline-none focus:ring-2 focus:ring-brand/40 focus:border-brand",
